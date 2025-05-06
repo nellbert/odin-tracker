@@ -43,13 +43,7 @@ def award_achievement(user, achievement_slug, request=None):
         pass
     return False # Not newly awarded or error
 
-def check_and_award_achievements(user, request=None, 
-                                 completion_instance=None, # Add default=None explicitly
-                                 profile=None, 
-                                 streak=None, 
-                                 daily_challenge_completed=False, 
-                                 view_context=None 
-                                 ):
+def check_and_award_achievements(user, request=None, completed_lesson=None):
     """Checks all relevant conditions and awards achievements to the user."""
     if not user or not user.is_authenticated: # Ensure user is valid
         return
@@ -59,7 +53,7 @@ def check_and_award_achievements(user, request=None,
         award_achievement(user, ACHIEVEMENT_SLUGS['FIRST_LESSON'], request)
 
     # 2. First Project Completed
-    if completion_instance and completion_instance.lesson.lesson_type == 'Project':
+    if completed_lesson and completed_lesson.lesson_type == 'Project':
         if Completion.objects.filter(user=user, lesson__lesson_type='Project').count() == 1:
             award_achievement(user, ACHIEVEMENT_SLUGS['FIRST_PROJECT'], request)
 
@@ -98,8 +92,8 @@ def check_and_award_achievements(user, request=None,
         pass
 
     # 4. Perfect Section (any section fully completed)
-    if completion_instance: # Check only if a lesson was just completed
-        section_just_completed = completion_instance.lesson.section
+    if completed_lesson: # Check only if a lesson was just completed
+        section_just_completed = completed_lesson.section
         lessons_in_section_total = section_just_completed.lessons.count()
         lessons_in_section_completed_by_user = section_just_completed.lessons.filter(id__in=completed_lesson_ids).count()
         if lessons_in_section_total > 0 and lessons_in_section_total == lessons_in_section_completed_by_user:
