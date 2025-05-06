@@ -307,8 +307,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 </script>
 
-{# Add Toastify JS #}
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+{# Add custom toast container #}
+<div id="custom-toast-container" style="position: fixed; bottom: 2.5rem; right: 2.5rem; z-index: 1055; display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;"></div>
 
 {# Updated AJAX script for lesson completion with full context update & toasts #}
 <script>
@@ -317,17 +317,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.getElementById('csrfTokenInput').value;
 
     // Function to display toast messages
-    function showToast(message, type = 'success') {
-        Toastify({
-            text: message,
-            duration: 3000,
-            close: true,
-            gravity: "bottom", // Changed to bottom
-            position: "right", // Explicitly set to right
-            stopOnFocus: true, // Prevents dismissing of toast on hover
-            className: type === 'success' ? "toast-success-theme" : "toast-error-theme", // Add custom classes
-            // style object is removed to rely on CSS classes
-        }).showToast();
+    function showCustomToast(message, type = 'success') {
+        // type: 'success', 'error', 'info', 'warning'
+        const container = document.getElementById('custom-toast-container');
+        if (!container) return;
+        // Icon selection
+        let iconClass = 'fa-circle-info';
+        let colorClass = 'bg-primary';
+        if (type === 'success') { iconClass = 'fa-check-circle'; colorClass = 'bg-success'; }
+        else if (type === 'error') { iconClass = 'fa-times-circle'; colorClass = 'bg-danger'; }
+        else if (type === 'warning') { iconClass = 'fa-exclamation-triangle'; colorClass = 'bg-warning text-dark'; }
+        // Toast element
+        const toast = document.createElement('div');
+        toast.className = `glass-card custom-toast shadow-lg d-flex align-items-center ${colorClass}`;
+        toast.style.minWidth = '260px';
+        toast.style.maxWidth = '350px';
+        toast.style.padding = '1rem 1.5rem';
+        toast.style.borderRadius = '18px';
+        toast.style.backdropFilter = 'blur(14px) saturate(160%)';
+        toast.style.border = '1.5px solid rgba(255,255,255,0.13)';
+        toast.style.fontSize = '1rem';
+        toast.style.color = type === 'warning' ? '#222' : '#fff';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '0.75rem';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(30px)';
+        toast.style.transition = 'opacity 0.3s, transform 0.3s';
+        toast.innerHTML = `
+            <i class="fas ${iconClass} fa-lg me-2"></i>
+            <span style="flex:1;">${message}</span>
+            <button type="button" class="btn-close btn-close-white ms-2" aria-label="Close" style="filter: drop-shadow(0 0 2px #0008); opacity:0.7;"></button>
+        `;
+        // Close button
+        toast.querySelector('button').onclick = () => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(30px)';
+            setTimeout(() => toast.remove(), 300);
+        };
+        // Add and animate in
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        }, 10);
+        // Auto-remove after 3s
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(30px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 
     // Function to update dashboard elements based on context data
@@ -493,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     // Show success toast
                     if(data.message) {
-                        showToast(data.message, 'success');
+                        showCustomToast(data.message, 'success');
                     }
                 } else {
                     throw new Error(data.message || 'Failed to update lesson status.');
@@ -502,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error updating lesson status:', error);
                 // Show error toast
-                showToast(error.message || 'Could not update lesson status.', 'error');
+                showCustomToast(error.message || 'Could not update lesson status.', 'error');
                 
                 // Revert button and style
                 if (isCompleting) {
