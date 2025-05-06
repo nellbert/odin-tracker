@@ -8,16 +8,43 @@
 {% block extra_head %}
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <style>
-    /* Optional: Customize Toastify appearance */
+    /* New Toastify appearance for glassmorphism and bottom-right positioning */
     .toastify {
+        padding: 12px 20px !important;
         border-radius: 12px !important; 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-        background: linear-gradient(135deg, rgba(50, 50, 50, 0.8), rgba(30, 30, 30, 0.85)) !important;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        color: var(--text-color, #e0e0e0) !important; /* Light text for dark glass */
+        background: var(--glass-card-bg-toast, rgba(30, 30, 30, 0.65)) !important; /* Darker, more translucent for toasts */
+        backdrop-filter: blur(var(--glass-card-blur-toast, 12px)) saturate(var(--glass-card-saturate-toast, 160%)) !important;
+        border: 1px solid var(--glass-card-border-color-toast, rgba(255, 255, 255, 0.1)) !important; /* Lighter border */
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3) !important; /* Adjusted shadow */
+        opacity: 0.95 !important; /* Slight transparency if not fully handled by background */
+        z-index: 99999 !important; /* Ensure it's on top */
     }
-    .toastify.on.toastify-right { right: 15px; }
-    .toastify.on.toastify-top { top: 75px; } /* Adjust position below navbar */
+
+    /* Toastify will handle actual positioning via JS options gravity:'bottom', position:'right' */
+    /* Remove specific top override if it was present */
+    /* .toastify.on.toastify-top { top: 15px; } */ /* Example of what to ensure is not conflicting or is removed */
+    
+    /* Custom classes for themed success/error states */
+    .toastify.toast-success-theme {
+        border-left: 4px solid var(--bs-success-rgb, 25, 135, 84) !important; /* Using Bootstrap's success color variable if available */
+        /* background: rgba(var(--bs-success-rgb), 0.1) !important; /* Optional subtle background tint */
+    }
+
+    .toastify.toast-error-theme {
+        border-left: 4px solid var(--bs-danger-rgb, 220, 53, 69) !important; /* Using Bootstrap's danger color variable */
+    }
+
+    /* Ensure close button is visible on the glass background */
+    .toastify .toastify-close {
+        opacity: 0.7 !important;
+        color: var(--text-color, #e0e0e0) !important; 
+        text-shadow: none !important; /* Remove default text-shadow if any */
+    }
+    .toastify .toastify-close:hover {
+        opacity: 1 !important;
+    }
 </style>
 {% endblock %}
 
@@ -295,15 +322,11 @@ document.addEventListener('DOMContentLoaded', function() {
             text: message,
             duration: 3000,
             close: true,
-            gravity: "top", // `top` or `bottom`
-            position: "right", // `left`, `center` or `right`
+            gravity: "bottom", // Changed to bottom
+            position: "right", // Explicitly set to right
             stopOnFocus: true, // Prevents dismissing of toast on hover
-            style: {
-                background: type === 'success' 
-                                ? "linear-gradient(to right, #00b09b, #96c93d)" 
-                                : "linear-gradient(to right, #ff5f6d, #ffc371)", // Error gradient
-            },
-            // onClick: function(){} // Callback after click
+            className: type === 'success' ? "toast-success-theme" : "toast-error-theme", // Add custom classes
+            // style object is removed to rely on CSS classes
         }).showToast();
     }
 
@@ -414,12 +437,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
             })
             .then(response => {
+                const contentType = response.headers.get('content-type');
                 if (!response.ok) {
-                    return response.json().then(errData => {
-                        throw new Error(errData.message || `Request failed with status ${response.status}`);
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `Request failed with status ${response.status}`);
+                        });
+                    } else {
+                        // It's not JSON, so don't try to parse it as JSON.
+                        return response.text().then(textData => {
+                             throw new Error(`Server returned non-JSON error (status ${response.status}). Response starts with: ${textData.substring(0,150)}...`);
+                        });
+                    }
+                }
+                // For successful responses, we still expect JSON
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text().then(textData => {
+                        throw new Error(`Expected JSON from server for a successful response, but got non-JSON. Response starts with: ${textData.substring(0,150)}...`);
                     });
                 }
-                return response.json();
             })
             .then(data => {
                 if (data.status === 'ok') {
