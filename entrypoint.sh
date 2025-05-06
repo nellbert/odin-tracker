@@ -9,7 +9,6 @@ set -e
 # echo "---> Collecting static files..."
 # python manage.py collectstatic --noinput --clear
 
-echo "---> Starting Gunicorn server (with debug logging, explicit bind, no pre-commands)..."
-# Start Gunicorn with debug logging and explicit port binding
-# Ensure PORT environment variable is available in Railway
-exec gunicorn odintrack_project.wsgi --bind 0.0.0.0:${PORT:-8080} --log-file - --log-level debug 
+echo "---> Starting Daphne ASGI server..."
+# Start Daphne with explicit port binding from $PORT, default to 8000 if not set
+exec daphne -b 0.0.0.0 -p ${PORT:-8000} odintrack_project.asgi:application --access-log - 
