@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}OdinTrack - Gamify Your Odin Project Journey{% endblock %}
+
+{% block content %}
+{% if not user.is_authenticated %}
+
+<style>
+  /* Landing page specific styles */
+  :root { /* Override for landing page only */
+    --background-blob-opacity-landing: 0.35;
+  }
+
+  body::before,
+  body::after { /* Ensure landing page uses the adjusted opacity */
+    opacity: var(--background-blob-opacity-landing) !important;
+  }
+
+  .landing-hero {
+    padding: 6rem 1rem;
+    text-align: center;
+    position: relative; 
+    z-index: 1; 
+  }
+
+  .landing-hero h1 {
+    font-size: 3.8rem; 
+    font-weight: 700;
+    color: var(--heading-color);
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 15px rgba(0,0,0,0.1); 
+  }
+
+  .landing-hero .lead {
+    font-size: 1.6rem; 
+    font-weight: 300;
+    color: var(--text-color);
+    margin-bottom: 2.5rem; 
+    max-width: 750px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .feature-showcase-section {
+    padding: 5rem 0; 
+    position: relative;
+    z-index: 1;
+  }
+  
+  .feature-showcase-section h2.display-5 {
+      margin-bottom: 4rem !important; 
+  }
+
+  .feature-panel { 
+    text-align: center;
+    padding: 1rem; 
+    margin-bottom: 2rem; 
+  }
+
+  .feature-panel.text-content { 
+      padding: 2rem; 
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%; 
+  }
+  
+  .feature-panel .glass-card { 
+      width: 100%;
+  }
+  
+  .mock-ui-display { 
+    border-radius: 16px; 
+    height: 300px; 
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+    max-width: 100%;
+    padding: 1.5rem; 
+    overflow: hidden; 
+    position: relative; 
+  }
+  
+  .feature-panel.glass-card .mock-ui-display {
+      margin-bottom: 0; 
+  }
+
+  .feature-panel .mock-ui-icon-large { /* For prominent icons in mockups */
+    font-size: 6rem; 
+    color: var(--link-color);
+    opacity: 0.65;
+    margin-bottom: 1rem;
+  }
+   .feature-panel .mock-ui-icon-medium { 
+    font-size: 4rem; 
+    color: var(--link-color);
+    opacity: 0.7;
+  }
+
+  .feature-panel h3 {
+    font-size: 1.85rem; 
+    font-weight: 600;
+    color: var(--heading-color);
+    margin-bottom: 0.75rem;
+  }
+  
+  .feature-panel p {
+    color: var(--text-color);
+    font-size: 1.05rem; 
+    line-height: 1.6;
+  }
+
+  /* Enhanced Mock UI for Lessons & Projects */
+  .mock-lessons-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center; 
+    padding: 10px;
+  }
+  .mock-lesson-item {
+    background-color: rgba(255,255,255, 0.3); 
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 12px; 
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    width: 85%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--heading-color);
+  }
+  .mock-lesson-item:last-child {
+    margin-bottom: 0;
+  }
+  .mock-lesson-item .lesson-title {
+    font-weight: 500;
+  }
+  .mock-lesson-item .lesson-status-icon {
+    font-size: 1rem;
+    color: var(--badge-bg-success); 
+  }
+   .mock-lesson-item .lesson-points {
+    font-size: 0.8rem;
+    color: var(--link-color);
+    font-weight: 500;
+    background-color: rgba(0, 113, 227, 0.1);
+    padding: 3px 6px;
+    border-radius: 8px;
+  }
+
+  /* Mock UI for Streaks */
+  .mock-streak-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .mock-streak-value {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--heading-color);
+    line-height: 1;
+  }
+  .mock-streak-label {
+    font-size: 1rem;
+    color: var(--text-color);
+  }
+
+  /* Mock UI for Achievements */
+  .mock-achievement-container {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .mock-achievement-title {
+      font-size: 1.1rem; font-weight: 500; color: var(--heading-color); margin-top: 0.5rem;
+  }
+
+  /* Mock UI for Daily Challenges */
+  .mock-challenge-card {
+    background-color: rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    width: 80%;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    text-align: center;
+  }
+  .mock-challenge-card .mock-ui-icon-medium {
+      margin-bottom: 0.75rem;
+  }
+  .mock-challenge-text {
+      font-size: 0.95rem; color: var(--text-color);
+  }
+
+  .benefits-section {
+    padding: 5rem 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .benefit-item { 
+    text-align: center;
+  }
+  .benefit-item .icon {
+    font-size: 3.5rem; 
+    color: var(--link-color);
+    margin-bottom: 1.5rem;
+    display: block; 
+  }
+
+  .final-cta-section {
+    padding: 6rem 1rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+  .final-cta-section .glass-card {
+      background: var(--card-bg);
+  }
+  .final-cta-section h2 {
+    font-size: 2.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .final-cta-section p.lead { 
+    font-size: 1.35rem;
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .scroll-triggered-animation {
+    opacity: 0;
+    transform: translateY(30px); 
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .scroll-triggered-animation.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+
+<!-- Hero Section -->
+<div class="landing-hero">
+  <div class="container">
+    <h1>Gamify Your Odin Project Journey.</h1>
+    <p class="lead">
+      OdinTracker adds points, streaks, achievements, and daily challenges to The Odin Project curriculum to help you stay motivated and track your progress.
+    </p>
+    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+      <a href="{% url 'signup' %}" class="btn btn-primary btn-lg px-4 gap-3 me-sm-3">Start Tracking - Sign Up</a>
+      <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg px-4">Log In</a>
+    </div>
+  </div>
+</div>
+
+<!-- Feature Showcase Section (Apple Style) -->
+<section class="feature-showcase-section">
+  <div class="container">
+    <h2 class="text-center mb-5 display-5 fw-bold">How OdinTracker Enhances Your Learning</h2>
+
+    <div class="row g-lg-5 g-md-4 align-items-stretch justify-content-center scroll-triggered-animation">
+      <div class="col-md-6 col-lg-5">
+        <div class="feature-panel glass-card h-100"> 
+          <div class="mock-ui-display"> 
+            <div class="mock-lessons-container">
+              <div class="mock-lesson-item">
+                <span class="lesson-title">TOP: Foundations - HTML</span> <span class="badge bg-primary rounded-pill lesson-points text-white">+10 points</span>
+              </div>
+              <div class="mock-lesson-item">
+                <span class="lesson-title">TOP: JavaScript Basics</span> <i class="fas fa-check-circle lesson-status-icon text-success"></i>
+              </div>
+              <div class="mock-lesson-item">
+                <span class="lesson-title">TOP: NodeJS - APIs</span> <span class="badge bg-primary rounded-pill lesson-points text-white">+15 points</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-5 d-flex"> 
+        <div class="feature-panel text-content"> 
+          <h3>Visualize Your Odin Project Path</h3>
+          <p>See The Odin Project's curriculum laid out with clear sections and lessons. Track completions and earn points as you progress through each module.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-5">
+
+    <div class="row g-lg-5 g-md-4 align-items-stretch justify-content-center flex-md-row-reverse scroll-triggered-animation">
+      <div class="col-md-6 col-lg-5">
+        <div class="feature-panel glass-card h-100">
+          <div class="mock-ui-display">
+            <div class="mock-streak-container">
+                <i class="fas fa-fire mock-ui-icon-large"></i>
+                <span class="mock-streak-value">12</span>
+                <span class="mock-streak-label">Day Streak</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-5 d-flex">
+        <div class="feature-panel text-content">
+          <h3>Build Consistent Study Habits</h3>
+          <p>Earn points for completing lessons and build daily streaks by engaging with The Odin Project material. Stay motivated by seeing your consistency pay off.</p>
+        </div>
+      </div>
+    </div>
+    
+    <hr class="my-5">
+
+    <div class="row g-lg-5 g-md-4 align-items-stretch justify-content-center scroll-triggered-animation">
+      <div class="col-md-6 col-lg-5">
+        <div class="feature-panel glass-card h-100">
+          <div class="mock-ui-display">
+            <div class="mock-achievement-container">
+                <i class="fas fa-trophy mock-ui-icon-large"></i>
+                <span class="mock-achievement-title">HTML Veteran</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-5 d-flex">
+        <div class="feature-panel text-content">
+          <h3>Unlock Achievements for TOP Milestones</h3>
+          <p>Get recognized for completing key sections or maintaining long streaks within The Odin Project. Collect badges that mark your journey.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-5">
+
+    <div class="row g-lg-5 g-md-4 align-items-stretch justify-content-center flex-md-row-reverse scroll-triggered-animation">
+       <div class="col-md-6 col-lg-5">
+        <div class="feature-panel glass-card h-100">
+          <div class="mock-ui-display">
+             <div class="mock-challenge-card">
+                <i class="fas fa-calendar-check mock-ui-icon-medium"></i>
+                <p class="mock-challenge-text mb-2">Complete 2 lessons from<br/>"TOP: Ruby Basics"</p>
+                <span class="badge bg-primary rounded-pill">+20 bonus points</span>
+             </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-5 d-flex">
+        <div class="feature-panel text-content">
+          <h3>Daily Challenges to Keep You Going</h3>
+          <p>Receive daily challenges related to The Odin Project, like "Complete 2 lessons" or "Earn 30 points," to add an extra layer of engagement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- "Why OdinTracker?" / Benefits Section -->
+<section class="benefits-section">
+  <div class="container">
+    <h2 class="text-center mb-5 display-5 fw-bold">Make The Odin Project More Engaging</h2>
+    <div class="row gy-4"> 
+      <div class="col-lg-4 col-md-6 scroll-triggered-animation">
+        <div class="benefit-item glass-card p-4 h-100"> 
+          <span class="icon"><i class="fas fa-cogs"></i></span> 
+          <h3>Stay Motivated</h3>
+          <p>Gamification elements like points and streaks help maintain focus and enthusiasm through The Odin Project's comprehensive curriculum.</p>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6 scroll-triggered-animation" style="animation-delay: 0.15s;">
+        <div class="benefit-item glass-card p-4 h-100">
+          <span class="icon"><i class="fas fa-tasks"></i></span>
+          <h3>Clear Progress Tracking</h3>
+          <p>Visually track your completions and see how far you've come in The Odin Project, lesson by lesson.</p>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-12 scroll-triggered-animation" style="animation-delay: 0.3s;"> 
+        <div class="benefit-item glass-card p-4 h-100">
+          <span class="icon"><i class="fas fa-flag-checkered"></i></span> 
+          <h3>Achieve Your Goals</h3>
+          <p>Use OdinTracker as your personal companion to stay on course and successfully complete The Odin Project.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final Call to Action Section -->
+<section class="final-cta-section">
+  <div class="container">
+    <div class="glass-card p-lg-5 p-4 scroll-triggered-animation">
+      <h2 class="fw-bold">Ready to Track Your Odin Project Progress?</h2>
+      <p class="lead">
+        Sign up for OdinTracker and add a layer of gamification to your learning journey with The Odin Project.
+      </p>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <a href="{% url 'signup' %}" class="btn btn-primary btn-lg px-4 gap-3 me-sm-3">Sign Up & Start Tracking</a>
+        <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg px-4">Log In to Continue</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% block extra_js %}{{ block.super }} 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 }); 
+
+  document.querySelectorAll('.scroll-triggered-animation').forEach((el) => {
+    observer.observe(el);
+  });
+});
+</script>
+{% endblock %}
+
+{% endif %} {# end if not user.is_authenticated #}
+{% endblock %} {# end content #} 
