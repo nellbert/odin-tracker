@@ -49,7 +49,7 @@
                                             {% else %}
                                                 <form method="post" action="{% url 'mark_complete' lesson.id %}" style="display: inline;">
                                                     {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-primary mark-complete-btn">
+                                                    <button type="submit" class="btn btn-xs btn-mark-complete-light mark-complete-btn">
                                                         <i class="fas fa-check me-1"></i>Mark Complete
                                                     </button>
                                                 </form>
@@ -335,6 +335,19 @@ document.addEventListener('DOMContentLoaded', function () {
     .rank-display-dashboard { min-width: 30px; text-align: center; }
     .username-dashboard { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .points-dashboard .badge { font-size: 0.9em; }
-
+    .btn-mark-complete-light {
+        background-color: #e3f0fb !important;
+        border-color: #b6e0fe !important;
+        color: #0074d9 !important;
+        font-size: 0.95em;
+        padding: 0.35rem 0.9rem;
+        box-shadow: none;
+        transition: background 0.2s, color 0.2s, border 0.2s;
+    }
+    .btn-mark-complete-light:hover, .btn-mark-complete-light:focus {
+        background-color: #d0e7fa !important;
+        color: #005fa3 !important;
+        border-color: #90cdf4 !important;
+    }
 </style>
 {% endblock %} 
