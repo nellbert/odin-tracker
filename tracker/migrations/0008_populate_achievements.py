@@ -6,7 +6,6 @@ from django.db import migrations
 ACHIEVEMENTS_LIST = [
     # Core Progression
     {'slug': 'first_completion', 'title': 'Trailblazer', 'description': 'Completed your very first lesson or project.', 'icon': 'fas fa-shoe-prints', 'points': 10},
-    {'slug': 'first_project', 'title': 'Builder', 'description': 'Completed your first Project.', 'icon': 'fas fa-drafting-compass', 'points': 25},
     {'slug': 'completed_html_section', 'title': 'HTML Hero', 'description': 'Completed all lessons and projects in the HTML section.', 'icon': 'fab fa-html5', 'points': 50},
     {'slug': 'completed_css_section', 'title': 'CSS Champion', 'description': 'Completed all lessons and projects in the CSS section.', 'icon': 'fab fa-css3-alt', 'points': 50},
     # Add more section completions here (e.g., completed_js_section)

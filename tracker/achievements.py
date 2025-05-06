@@ -5,6 +5,21 @@ from django.db import transaction
 from django.utils import timezone # For date checks
 from .models import User, Achievement, UserAchievement, UserProfile, Completion, Section, Lesson, UserStreak, UserDailyChallenge # Import UserDailyChallenge
 
+# Predefined achievement slugs (must match those created in the admin)
+ACHIEVEMENT_SLUGS = {
+    'FIRST_LESSON': 'first-lesson-completed',
+    'HTML_FOUNDATION_COMPLETE': 'html-foundation-complete',
+    'CSS_FOUNDATION_COMPLETE': 'css-foundation-complete',
+    'JS_BASICS_COMPLETE': 'javascript-basics-complete',
+    'FIRST_PROJECT': 'first-project-completed',
+    'PERFECT_SECTION': 'perfect-section', # For completing all lessons in any section
+    'TEN_DAY_STREAK': 'ten-day-streak',
+    'THIRTY_DAY_STREAK': 'thirty-day-streak',
+    'POINT_MILESTONE_100': '100-points-milestone',
+    'POINT_MILESTONE_500': '500-points-milestone',
+    'COURSE_COMPLETED': 'foundations-course-completed',
+}
+
 def _award_achievement_if_not_earned(user, request, achievement_slug):
     """Awards an achievement if not already earned, adds points, and shows a message."""
     try:
@@ -34,11 +49,11 @@ def _award_achievement_if_not_earned(user, request, achievement_slug):
             return True # Newly awarded
 
     except Achievement.DoesNotExist:
-        print(f"ERROR: Attempted to award non-existent achievement slug: {achievement_slug}")
+        print(f"Attempted to award non-existent achievement slug: {achievement_slug}")
     except UserProfile.DoesNotExist:
-        print(f"ERROR: UserProfile not found for {user.username} when awarding {achievement_slug}.")
+        print(f"UserProfile not found for {user.username} when awarding {achievement_slug}.")
     except Exception as e: # Catch other potential errors during transaction
-        print(f"ERROR: Awarding achievement {achievement_slug} to {user.username}: {e}")
+        print(f"Error awarding achievement {achievement_slug} to {user.username}: {e}")
     
     return False # Not newly awarded or error occurred
 
@@ -54,46 +69,41 @@ def check_and_award_achievements(user, request=None,
     if not user or not user.is_authenticated:
         return
 
-    # Fetch profile/streak if not provided or potentially stale
-    current_profile = profile or UserProfile.objects.filter(user=user).first()
-    current_streak = streak or UserStreak.objects.filter(user=user).first()
+    # Ensure we have profile and streak objects if needed for checks
+    if not profile:
+        profile = UserProfile.objects.filter(user=user).first()
+    if not streak:
+        streak = UserStreak.objects.filter(user=user).first()
 
-    if not current_profile:
-        print(f"WARNING: No profile found for user {user.username} during achievement check.")
+    if not profile: # If profile still doesn't exist, something is wrong
         return
 
     # --- Checks Triggered by Lesson Completion --- 
     if completion_instance:
+        # Get the related lesson from the completion instance
         completed_lesson = completion_instance.lesson
         user_completion_count = Completion.objects.filter(user=user).count()
-        today_date = completion_instance.completed_at.date()
         
         # 1. First Completion
         if user_completion_count == 1:
             _award_achievement_if_not_earned(user, request, 'first_completion')
 
-        # 1b. First Project Completion (if the first completion was a project)
-        if user_completion_count == 1 and completed_lesson.lesson_type == 'Project':
-             _award_achievement_if_not_earned(user, request, 'first_project')
-        # Or, if it's not the *very* first completion, check if it's the first *project* completion
-        elif completed_lesson.lesson_type == 'Project':
-            project_completion_count = Completion.objects.filter(user=user, lesson__lesson_type='Project').count()
-            if project_completion_count == 1:
-                 _award_achievement_if_not_earned(user, request, 'first_project')
-
-        # 2. Section Completion (HTML, CSS)
+        # 2. Section Completion (HTML, CSS - requires section identification)
+        # Note: Relies on achievement slugs matching migration (completed_html_section, etc.)
         section_just_completed = completed_lesson.section
         section_lesson_ids = set(section_just_completed.lessons.values_list('id', flat=True))
         user_completed_lesson_ids_in_section = set(Completion.objects.filter(user=user, lesson__section=section_just_completed).values_list('lesson_id', flat=True))
         
         if section_lesson_ids.issubset(user_completed_lesson_ids_in_section) and len(section_lesson_ids) > 0:
-            section_slug_part = section_just_completed.title.lower().split(' ')[0] 
-            # TODO: Add Section.slug field for reliable matching
-            if section_slug_part == 'html': 
+            # Dynamic check based on section title/slug convention
+            section_slug_part = section_just_completed.title.lower().split(' ')[0] # Basic assumption
+            # More robust: if Section model had a slug field: section_slug_part = section_just_completed.slug
+            if section_slug_part == 'html': # Adjust if section titles are different
                  _award_achievement_if_not_earned(user, request, 'completed_html_section')
-            elif section_slug_part == 'css': 
+            elif section_slug_part == 'css': # Adjust if section titles are different
                  _award_achievement_if_not_earned(user, request, 'completed_css_section')
-            # Add elif for other sections here
+            # Add elif for other sections (e.g., javascript)
+            # TODO: Consider adding a slug field to Section model for more reliable matching.
 
         # 3. Course Completion
         total_lessons_in_course = Lesson.objects.count()
@@ -105,33 +115,33 @@ def check_and_award_achievements(user, request=None,
             _award_achievement_if_not_earned(user, request, 'weekend_completion')
 
         # 5. Learning Spree (3 in a day)
-        completions_today = Completion.objects.filter(user=user, completed_at__date=today_date).count()
+        today = completion_instance.completed_at.date()
+        completions_today = Completion.objects.filter(user=user, completed_at__date=today).count()
         if completions_today >= 3:
              _award_achievement_if_not_earned(user, request, 'learning_spree_3')
 
-    # --- Checks based on latest Profile state --- 
-    if current_profile:
-        if current_profile.total_points >= 100:
+    # --- Checks Triggered by Point Updates (using passed profile) --- 
+    if profile: # Profile should have been updated before calling this
+        if profile.total_points >= 100:
             _award_achievement_if_not_earned(user, request, 'points_100')
-        if current_profile.total_points >= 500:
+        if profile.total_points >= 500:
             _award_achievement_if_not_earned(user, request, 'points_500')
-        if current_profile.total_points >= 1000:
+        if profile.total_points >= 1000:
              _award_achievement_if_not_earned(user, request, 'points_1000')
 
-    # --- Checks based on latest Streak state --- 
-    if current_streak:
-        if current_streak.current_streak >= 3:
+    # --- Checks Triggered by Streak Updates (using passed streak) --- 
+    if streak: # Streak should have been updated before calling this
+        if streak.current_streak >= 3:
             _award_achievement_if_not_earned(user, request, 'streak_3_day')
-        if current_streak.current_streak >= 7:
+        if streak.current_streak >= 7:
             _award_achievement_if_not_earned(user, request, 'streak_7_day')
-        if current_streak.current_streak >= 30:
+        if streak.current_streak >= 30:
             _award_achievement_if_not_earned(user, request, 'streak_30_day')
 
     # --- Checks Triggered by Daily Challenge Completion --- 
     if daily_challenge_completed:
         completed_challenges_count = UserDailyChallenge.objects.filter(user=user, completed_date__isnull=False).count()
-        # Check counts *after* the current one might have been completed
-        if completed_challenges_count >= 1: # Award on first completion
+        if completed_challenges_count == 1:
             _award_achievement_if_not_earned(user, request, 'first_daily_challenge')
         if completed_challenges_count >= 5:
             _award_achievement_if_not_earned(user, request, 'daily_challenge_5')
@@ -150,12 +160,12 @@ def check_and_award_achievements(user, request=None,
 
     # 1. First Lesson Completed
     if Completion.objects.filter(user=user).count() == 1:
-        _award_achievement_if_not_earned(user, request, 'first_completion')
+        _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['FIRST_LESSON'])
 
     # 2. First Project Completed
     if completion_instance and completion_instance.lesson_type == 'Project':
         if Completion.objects.filter(user=user, lesson__lesson_type='Project').count() == 1:
-            _award_achievement_if_not_earned(user, request, 'first_project')
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['FIRST_PROJECT'])
 
     # 3. Section Completion Achievements (example: HTML, CSS, JS)
     # This requires knowing section titles or having specific slugs for sections.
@@ -168,7 +178,7 @@ def check_and_award_achievements(user, request=None,
         html_lessons_total = html_section.lessons.count()
         html_lessons_completed = html_section.lessons.filter(id__in=completed_lesson_ids).count()
         if html_lessons_total > 0 and html_lessons_total == html_lessons_completed:
-            _award_achievement_if_not_earned(user, request, 'completed_html_section')
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['HTML_FOUNDATION_COMPLETE'])
     except Section.DoesNotExist:
         pass # Section not found, can't award
 
@@ -178,7 +188,7 @@ def check_and_award_achievements(user, request=None,
         css_lessons_total = css_section.lessons.count()
         css_lessons_completed = css_section.lessons.filter(id__in=completed_lesson_ids).count()
         if css_lessons_total > 0 and css_lessons_total == css_lessons_completed:
-            _award_achievement_if_not_earned(user, request, 'completed_css_section')
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['CSS_FOUNDATION_COMPLETE'])
     except Section.DoesNotExist:
         pass
     
@@ -187,7 +197,7 @@ def check_and_award_achievements(user, request=None,
         js_lessons_total = js_section.lessons.count()
         js_lessons_completed = js_section.lessons.filter(id__in=completed_lesson_ids).count()
         if js_lessons_total > 0 and js_lessons_total == js_lessons_completed:
-            _award_achievement_if_not_earned(user, request, 'completed_js_section')
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['JS_BASICS_COMPLETE'])
     except Section.DoesNotExist:
         pass
 
@@ -202,24 +212,24 @@ def check_and_award_achievements(user, request=None,
             # if we don't link it to a specific section object.
             # For now, let's assume a general "Perfect Section" can be awarded once.
             # To make it per-section, the Achievement model would need a ForeignKey to Section.
-            _award_achievement_if_not_earned(user, request, 'completed_perfect_section')
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['PERFECT_SECTION'])
 
     # 5. Streak Achievements
-    if current_streak:
-        if current_streak.current_streak >= 10:
-            _award_achievement_if_not_earned(user, request, 'streak_10_day')
-        if current_streak.current_streak >= 30:
-            _award_achievement_if_not_earned(user, request, 'streak_30_day')
+    if streak:
+        if streak.current_streak >= 10:
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['TEN_DAY_STREAK'])
+        if streak.current_streak >= 30:
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['THIRTY_DAY_STREAK'])
     
     # 6. Point Milestones
-    if current_profile:
-        if current_profile.total_points >= 100:
-            _award_achievement_if_not_earned(user, request, 'points_100')
-        if current_profile.total_points >= 500:
-            _award_achievement_if_not_earned(user, request, 'points_500')
+    if profile:
+        if profile.total_points >= 100:
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['POINT_MILESTONE_100'])
+        if profile.total_points >= 500:
+            _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['POINT_MILESTONE_500'])
 
     # 7. Course Completed
     total_lessons_in_course = Lesson.objects.count()
     user_total_completed_lessons = Completion.objects.filter(user=user).count()
     if total_lessons_in_course > 0 and user_total_completed_lessons >= total_lessons_in_course:
-        _award_achievement_if_not_earned(user, request, 'completed_all') 
+        _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['COURSE_COMPLETED']) 
