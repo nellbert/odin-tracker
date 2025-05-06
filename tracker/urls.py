@@ -9,6 +9,9 @@ urlpatterns = [
     path('signup/', views.signup, name='signup'),
     path('settings/', views.user_settings, name='user_settings'),
     path('settings/reset/', views.reset_progress, name='reset_progress'),
+    path('settings/password/', views.CustomPasswordChangeView.as_view(), name='password_change'),
+    path('settings/password/done/', views.CustomPasswordChangeDoneView.as_view(), name='password_change_done'),
+    path('settings/delete_account/', views.delete_account, name='delete_account'),
     path('leaderboard/', views.leaderboard, name='leaderboard'),
     path('achievements/', views.achievements_page, name='achievements_list'),
     # Optional: Redirect root to dashboard if needed later, or handle in project urls

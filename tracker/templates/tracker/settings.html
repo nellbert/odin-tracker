@@ -1,57 +1,186 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
 
 {% block title %}Settings - OdinTrack{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
+        <div class="col-md-10 col-lg-8">
             
-            <div class="glass-card p-4 mb-4">
-                <h2 class="text-center mb-4">Settings</h2>
+            <div class="glass-card p-lg-5 p-md-4 p-3 mb-4">
+                <h2 class="text-center mb-5"><i class="fas fa-cogs fa-fw me-2"></i>Account Settings</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show glass-pane mb-4" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {# Change Email Section #}
+                <div class="mb-4 p-3 p-md-4 border rounded glass-pane setting-section">
+                    <h4 class="mb-3"><i class="fas fa-envelope fa-fw me-2 text-primary"></i>Change Email Address</h4>
+                    <form method="post" action="{% url 'user_settings' %}">
+                        {% csrf_token %}
+                        {{ email_form|crispy }}
+                        <button type="submit" name="change_email" class="btn btn-primary mt-3 w-100 w-md-auto"><i class="fas fa-save fa-fw me-1"></i>Update Email</button>
+                    </form>
+                </div>
+
+                {# Change Password Section - Link to dedicated page #}
+                <div class="mb-4 p-3 p-md-4 border rounded glass-pane setting-section">
+                    <h4 class="mb-3"><i class="fas fa-key fa-fw me-2 text-primary"></i>Change Password</h4>
+                    <p class="text-muted">For security, password changes are handled on a dedicated page.</p>
+                    <a href="{% url 'password_change' %}" class="btn btn-secondary w-100 w-md-auto"><i class="fas fa-shield-alt fa-fw me-1"></i>Go to Change Password Page</a>
+                </div>
                 
-                {# Future settings sections can go here (e.g., change password, profile info) #}
-                
-                <hr class="my-4">
+                <hr class="my-5">
                 
                 {# Reset Progress Section #}
-                <div class="mb-3">
-                    <h4 class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Reset Progress</h4>
-                    <p class="text-muted">This action will permanently delete all your lesson completions, earned achievements, and reset your points and streaks. This cannot be undone.</p>
-                    <div class="text-center">
-                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetConfirmModal">
-                            Reset All My Progress
+                <div class="mb-4 p-3 p-md-4 border rounded glass-pane setting-section-warning">
+                    <h4 class="text-warning-custom mb-3"><i class="fas fa-undo-alt fa-fw me-2"></i>Reset All Progress</h4>
+                    <p class="text-warning-emphasis-custom small">
+                        <strong>Warning:</strong> This action will permanently delete all your lesson completions, earned achievements, and reset your points and streaks. 
+                        This operation is irreversible and your data cannot be recovered.
+                    </p>
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-warning-custom w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#resetConfirmModal">
+                            <i class="fas fa-exclamation-triangle fa-fw me-1"></i>Reset My Progress
                         </button>
                     </div>
                 </div>
-            </div>
 
+                {# Delete Account Section #}
+                <div class="p-3 p-md-4 border rounded glass-pane setting-section-danger">
+                    <h4 class="text-danger mb-3"><i class="fas fa-user-times fa-fw me-2"></i>Deactivate Account</h4>
+                    <p class="text-danger-emphasis small">
+                        <strong>Critical:</strong> This action will deactivate your account. You will be immediately logged out and will not be able to log back in. 
+                        While your data might not be instantly erased, consider this a permanent action.
+                    </p>
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-danger w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#deleteAccountConfirmModal">
+                            <i class="fas fa-skull-crossbones fa-fw me-1"></i>Deactivate My Account
+                        </button>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 </div>
 
-{# Confirmation Modal #}
+{# Reset Progress Confirmation Modal #}
 <div class="modal fade" id="resetConfirmModal" tabindex="-1" aria-labelledby="resetConfirmModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content glass-card">
       <div class="modal-header border-0">
-        <h5 class="modal-title text-danger" id="resetConfirmModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Progress Reset</h5>
+        <h5 class="modal-title text-danger" id="resetConfirmModalLabel"><i class="fas fa-exclamation-triangle fa-fw me-2"></i>Confirm Progress Reset</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Are you absolutely sure you want to reset all your progress?</p>
-        <p class="fw-bold text-danger">This includes all completed lessons, achievements, points, and streaks. This action cannot be reversed.</p>
+        <p>Are you absolutely sure you want to reset <strong>all</strong> your progress?</p>
+        <p class="fw-bold text-danger-emphasis">This includes all completed lessons, achievements, points, and streaks. This action cannot be reversed.</p>
       </div>
       <div class="modal-footer border-0 justify-content-center">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        {# This form POSTs to the reset view #}
         <form method="post" action="{% url 'reset_progress' %}" style="display: inline;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger">Yes, Reset Everything</button>
+            <button type="submit" class="btn btn-warning-custom"><i class="fas fa-undo-alt fa-fw me-1"></i>Yes, Reset Everything</button>
         </form>
       </div>
     </div>
   </div>
 </div>
+
+{# Delete Account Confirmation Modal #}
+<div class="modal fade" id="deleteAccountConfirmModal" tabindex="-1" aria-labelledby="deleteAccountConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger" id="deleteAccountConfirmModalLabel"><i class="fas fa-user-slash fa-fw me-2"></i>Confirm Account Deactivation</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you absolutely sure you want to deactivate your account?</p>
+        <p class="fw-bold text-danger-emphasis">You will be logged out and will not be able to log back in. This is a serious and generally irreversible action.</p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{% url 'delete_account' %}" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="confirm_delete" value="true">
+            <button type="submit" class="btn btn-danger"><i class="fas fa-user-times fa-fw me-1"></i>Yes, Deactivate My Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_css %}
+<style>
+    /* Consistent Button Styling & Hover Effects */
+    .btn {
+        transition: all 0.2s ease-in-out; /* Smooth transition for all properties */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    }
+    .btn:hover {
+        transform: translateY(-1px); /* Slight lift effect */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Enhanced shadow on hover */
+        filter: brightness(1.1); /* Slightly brighten the button */
+    }
+    .btn:active {
+        transform: translateY(0px); /* Button press effect */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        filter: brightness(0.95);
+    }
+    .btn i.fa-fw {
+        margin-right: 0.5em;
+    }
+
+    /* Custom Warning Button Styling (readable yellow/amber) */
+    .btn-warning-custom {
+        background-color: #D4A017; /* Amber/Dark Yellow */
+        border-color: #C09010;
+        color: #000000; /* Black text for high contrast */
+    }
+    .btn-warning-custom:hover {
+        background-color: #E0AA20;
+        border-color: #D4A017;
+        color: #000000;
+    }
+    .text-warning-custom {
+        color: #D4A017 !important; /* Important to override Bootstrap if necessary */
+    }
+    .text-warning-emphasis-custom {
+        color: #A7770F !important; /* Darker amber for text emphasis */
+    }
+
+    /* Section Pane Styling */
+    .setting-section, .setting-section-warning, .setting-section-danger {
+        background-color: rgba(255, 255, 255, 0.07); /* Slightly more opaque for better definition */
+        backdrop-filter: blur(8px); /* Enhance blur if visionOS style uses it */
+        /* border: 1px solid rgba(255, 255, 255, 0.1) !important; */ /* Soft border for panes */
+    }
+    .setting-section-warning {
+        background-color: rgba(212, 160, 23, 0.1); /* Custom warning bg tint */
+        border-color: rgba(212, 160, 23, 0.3) !important;
+    }
+    .setting-section-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-color: rgba(220, 53, 69, 0.3) !important;
+    }
+
+    .text-danger-emphasis {
+        color: var(--bs-danger-text-emphasis);
+    }
+    h4 .fas, h4 .fab, h4 .far {
+        vertical-align: -0.1em; /* Fine-tune icon alignment */
+    }
+</style>
+{% endblock %}
+
 {% endblock %} 

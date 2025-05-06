@@ -6,14 +6,16 @@ from django.db.models import Count, Q, Sum # Import Sum
 from django.contrib import messages
 from .models import Section, Lesson, Completion, UserProfile, UserStreak, UserAchievement, UserDailyChallenge, Achievement # Add UserAchievement and UserDailyChallenge
 from django.contrib.auth.models import User # Import User
-from .forms import SignUpForm
-from django.contrib.auth import login # Import login
+from .forms import SignUpForm, EmailChangeForm # Updated imports
+from django.contrib.auth import login, update_session_auth_hash # Import login and update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from datetime import date, timedelta # Add date for streak logic if not already there from models
 from .achievements import check_and_award_achievements # Import the new function
 from .daily_challenges_logic import assign_new_daily_challenge, update_daily_challenge_progress # Import new functions
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse # Import reverse
 from django.utils import timezone
 from django.http import JsonResponse # Import JsonResponse
+from django.contrib.auth.views import PasswordChangeView, PasswordChangeDoneView
 
 # Helper function to get dashboard context data for a user
 def _get_user_dashboard_context(user):
@@ -197,10 +199,64 @@ def signup(request):
 
 @login_required
 def user_settings(request):
-    """Displays the user settings page."""
-    # Can add more settings later (e.g., change password, email)
-    context = {}
+    user = request.user
+
+    email_form = EmailChangeForm(instance=user)
+    password_form = PasswordChangeForm(user=user)
+
+    if request.method == 'POST':
+        if 'change_email' in request.POST:
+            email_form = EmailChangeForm(request.POST, instance=user)
+            if email_form.is_valid():
+                email_form.save()
+                messages.success(request, 'Your email address has been updated.')
+                return redirect('user_settings')
+        # Notification form logic removed
+
+    context = {
+        'email_form': email_form,
+        'password_form': password_form,
+    }
     return render(request, 'tracker/settings.html', context)
+
+class CustomPasswordChangeView(PasswordChangeView):
+    template_name = 'tracker/settings_password_change.html' # Or integrate into settings.html
+    success_url = reverse_lazy('password_change_done') # Redirect to a success page
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        update_session_auth_hash(self.request, form.user) # Important to keep user logged in
+        messages.success(self.request, 'Your password was successfully updated!')
+        return response
+
+class CustomPasswordChangeDoneView(PasswordChangeDoneView):
+    template_name = 'tracker/settings_password_change_done.html' # A simple confirmation page
+
+@login_required
+@require_POST
+def delete_account(request):
+    user = request.user
+    if request.POST.get('confirm_delete') == 'true': # Ensure confirmation
+        try:
+            # Keep user object to log out before deleting
+            # Or handle logout after redirect if preferred
+            user_to_delete = User.objects.get(pk=user.pk)
+            user_to_delete.is_active = False # Deactivate instead of full delete initially for safety/recovery
+            user_to_delete.save()
+            # Perform full logout
+            from django.contrib.auth import logout
+            logout(request)
+            messages.success(request, "Your account has been deactivated and you have been logged out. We're sad to see you go.")
+            return redirect('login') # Or a 'goodbye' page
+        except User.DoesNotExist:
+            messages.error(request, "User not found.") # Should not happen if logged in
+            return redirect('user_settings')
+        except Exception as e:
+            messages.error(request, f"An error occurred while deactivating your account: {e}")
+            return redirect('user_settings')
+    else:
+        messages.error(request, "Account deletion not confirmed.")
+        return redirect('user_settings')
 
 @login_required
 @require_POST # Ensure this can only be triggered by a POST request
