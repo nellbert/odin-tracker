@@ -8,14 +8,17 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 """
 
 import os
-import django # Import Django
+import django
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack # For authentication in WebSockets
-import tracker.routing # We will create this file next
+from channels.auth import AuthMiddlewareStack
+# DO NOT import tracker.routing here yet
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'odintrack_project.settings')
 django.setup() # Call django.setup() explicitly here
+
+# NOW import tracker.routing, AFTER django.setup()
+import tracker.routing
 
 # Get the default HTTP ASGI application
 django_asgi_app = get_asgi_application()
