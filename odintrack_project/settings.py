@@ -37,6 +37,17 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS_STRING = os.environ.get('ALLOWED_HOSTS', '')
 ALLOWED_HOSTS = ALLOWED_HOSTS_STRING.split(',') if ALLOWED_HOSTS_STRING else []
 
+# Add CSRF trusted origin for Railway deployment
+RAILWAY_APP_URL = os.environ.get('RAILWAY_STATIC_URL') # Railway injects this with the main URL
+if RAILWAY_APP_URL:
+    # Ensure it starts with https://
+    if not RAILWAY_APP_URL.startswith('https://'):
+        RAILWAY_APP_URL = f'https://{RAILWAY_APP_URL}'
+    CSRF_TRUSTED_ORIGINS = [RAILWAY_APP_URL]
+else:
+    # Fallback or add other trusted origins if needed
+    CSRF_TRUSTED_ORIGINS = []
+
 
 # Application definition
 
