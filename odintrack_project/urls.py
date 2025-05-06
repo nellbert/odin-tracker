@@ -16,11 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
+from tracker import views as tracker_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('tracker/', include('tracker.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
-    path('', RedirectView.as_view(url='/tracker/dashboard/', permanent=True)),
+    path('', tracker_views.root_landing_page_view, name='root_landing_page'),
+    path('landing/', tracker_views.root_landing_page_view, name='landing_page'),
 ]
