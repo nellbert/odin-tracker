@@ -20,7 +20,7 @@
                         <div class="card-body p-0"> 
                             <ul class="list-group list-group-flush lesson-list">
                                 {% for lesson in section.lessons.all %}
-                                    <li class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}" data-lesson-id="{{ lesson.id }}">
+                                    <li class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
                                         <div class="flex-grow-1 me-3">
                                             <span class="lesson-type-badge me-2 rounded-pill px-2 py-1 small
                                                 {% if lesson.lesson_type == 'Project' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
@@ -337,38 +337,4 @@ document.addEventListener('DOMContentLoaded', function () {
     .points-dashboard .badge { font-size: 0.9em; }
 
 </style>
-
-<script>
-// Optimistic UI for Mark Complete and Unmark Complete, and skip fade-in on reload after action
-(function() {
-  function handleOptimisticAction(btnClass) {
-    document.querySelectorAll(btnClass).forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        btn.disabled = true;
-        var form = btn.closest('form');
-        var lessonItem = btn.closest('.lesson-item');
-        // Set flag for reload
-        sessionStorage.setItem('odintracker_no_fadein', '1');
-        if (lessonItem) {
-          lessonItem.classList.add('fade-out');
-          setTimeout(function() {
-            form.submit();
-          }, 400);
-        } else {
-          form.submit();
-        }
-      });
-    });
-  }
-  handleOptimisticAction('.mark-complete-btn');
-  handleOptimisticAction('.completed-btn');
-
-  // On page load, check for flag and add class to body
-  if (sessionStorage.getItem('odintracker_no_fadein')) {
-    document.body.classList.add('no-fadein');
-    sessionStorage.removeItem('odintracker_no_fadein');
-  }
-})();
-</script>
 {% endblock %} 

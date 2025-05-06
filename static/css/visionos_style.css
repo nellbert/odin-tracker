@@ -117,13 +117,8 @@ h1, h2, h3, h4, h5, h6 {
     transition: all 0.35s ease-in-out, background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
     animation: fadeIn 0.5s ease-out forwards;
-    opacity: 0;
-    will-change: transform, box-shadow;
-}
-
-body.no-fadein .glass-card {
-    animation: none !important;
-    opacity: 1 !important;
+    opacity: 0; 
+    will-change: transform, box-shadow; /* Hint for optimization */
 }
 
 /* Add noise overlay to cards */
@@ -428,11 +423,4 @@ a:hover {
 /* Adjustments for smaller screens if needed */
 /*
 // ... existing code ...
-} 
-
-/* Fade-out animation for optimistic UI update */
-.fade-out {
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    pointer-events: none;
 } 
