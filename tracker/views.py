@@ -15,55 +15,64 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.http import JsonResponse # Import JsonResponse
 
+# Helper function to get dashboard context data for a user
+def _get_user_dashboard_context(user):
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    user_streak, _ = UserStreak.objects.get_or_create(user=user)
+    user_daily_challenge = assign_new_daily_challenge(user) # Get current challenge status
+    
+    total_lessons_count = Lesson.objects.count()
+    user_completed_count = Completion.objects.filter(user=user).count()
+    progress_percentage = 0
+    if total_lessons_count > 0:
+        progress_percentage = round((user_completed_count / total_lessons_count) * 100)
+
+    # Format last activity date if it exists
+    last_activity_str = user_streak.last_activity_date.strftime("%b %d") if user_streak.last_activity_date else "No activity yet"
+
+    # Prepare daily challenge context
+    daily_challenge_context = None
+    if user_daily_challenge and user_daily_challenge.challenge:
+        daily_challenge_context = {
+            'is_completed': user_daily_challenge.is_completed,
+            'description': user_daily_challenge.challenge.get_description(),
+            'current_progress': user_daily_challenge.current_progress,
+            'target_value': user_daily_challenge.challenge.target_value,
+            'points_reward': user_daily_challenge.challenge.points_reward
+        }
+        
+    return {
+        'total_points': profile.total_points,
+        'progress_percentage': progress_percentage,
+        'user_completed_count': user_completed_count,
+        'total_lessons_count': total_lessons_count, # Keep this if needed
+        'current_streak': user_streak.current_streak,
+        'longest_streak': user_streak.longest_streak,
+        'last_activity_date_str': last_activity_str,
+        'daily_challenge': daily_challenge_context # Include challenge details
+        # We could add recent achievements here too, but it might complicate the JSON
+    }
+
 @login_required
 def dashboard(request):
     user = request.user
     sections = Section.objects.prefetch_related('lessons').all()
     completed_lessons = Completion.objects.filter(user=user).values_list('lesson_id', flat=True)
-
-    total_lessons_count = Lesson.objects.count()
-    user_completed_count = len(completed_lessons)
-
-    progress_percentage = 0
-    if total_lessons_count > 0:
-        progress_percentage = round((user_completed_count / total_lessons_count) * 100)
-
-    profile, created = UserProfile.objects.get_or_create(user=user)
-    # Fetch streak data, get_or_create ensures it exists
-    user_streak, streak_created = UserStreak.objects.get_or_create(user=user)
-    # If streak was just created, its last_activity_date might be None.
-    # We might want to run update_streak() here if user has completions but streak was just made.
-    # For now, assume update_streak() is primarily driven by new completions.
-    # A more robust daily check (e.g. on login) might be needed for perfect accuracy if user completes offline and then syncs.
-
-    # Check if streak should be reset (if last activity was before yesterday)
-    # This is a simple check on dashboard load. A more robust solution uses a daily cron job.
-    today = date.today()
-    if user_streak.last_activity_date and user_streak.last_activity_date < (today - timedelta(days=1)):
-        if user_streak.current_streak > 0: # Only reset if there was an active streak
-            user_streak.current_streak = 0
-            # Do not reset last_activity_date here, update_streak handles it on new activity.
-            user_streak.save()
-            messages.info(request, "Your streak was reset due to inactivity. Keep learning daily!")
-
-    # Assign or get current daily challenge
-    user_daily_challenge = assign_new_daily_challenge(user)
-
-    # Check for achievements on dashboard load (for cumulative ones)
-    check_and_award_achievements(user, request)
+    # Get context using the helper
+    user_context = _get_user_dashboard_context(user)
+    # Get recent achievements separately for the main template
+    recent_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')[:5]
+    
+    # Check for view-based achievements (handled in leaderboard/achievements views now)
+    # check_and_award_achievements(user, request) # Not needed here anymore
 
     context = {
         'sections': sections,
         'completed_lessons': set(completed_lessons),
-        'total_points': profile.total_points,
-        'progress_percentage': progress_percentage,
-        'user_completed_count': user_completed_count,
-        'total_lessons_count': total_lessons_count,
-        'current_streak': user_streak.current_streak,
-        'longest_streak': user_streak.longest_streak,
-        'last_activity_date': user_streak.last_activity_date,
-        'user_achievements': UserAchievement.objects.filter(user=user).select_related('achievement')[:5], # Get top 5 recent
-        'user_daily_challenge': user_daily_challenge,
+        **user_context, # Unpack the user-specific context
+        'user_achievements': recent_achievements, # Pass recent achievements
+        # Pass the full daily challenge object if needed by specific template logic
+        'user_daily_challenge': assign_new_daily_challenge(user), 
     }
     return render(request, 'tracker/dashboard.html', context)
 
@@ -72,23 +81,25 @@ def dashboard(request):
 def mark_complete(request, lesson_id):
     user = request.user
     lesson_obj = get_object_or_404(Lesson, id=lesson_id)
-    profile = user.profile 
-    user_streak, streak_created = UserStreak.objects.get_or_create(user=user)
-    points_awarded_for_lesson = 0
-    
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    response_message = ""
 
     try:
         with transaction.atomic():
+            # Use select_for_update on profile and streak if potential race conditions exist
+            profile = UserProfile.objects.select_for_update().get(user=user)
+            user_streak, streak_created = UserStreak.objects.select_for_update().get_or_create(user=user)
+            
             completion, created = Completion.objects.get_or_create(user=user, lesson=lesson_obj)
 
             if created:
+                points_before = profile.total_points # Get points before update
                 profile.total_points += lesson_obj.points_value
                 points_awarded_for_lesson = lesson_obj.points_value
                 profile.save()
-                user_streak.update_streak()
+                user_streak.update_streak() # Saves streak internally
                 
-                # We still run achievement checks, but don't need request for messages if AJAX
+                # Check achievements silently for AJAX, pass request for non-AJAX messages
                 check_and_award_achievements(user, None if is_ajax else request, 
                                            completion_instance=completion, 
                                            profile=profile, 
@@ -99,27 +110,31 @@ def mark_complete(request, lesson_id):
                                                                           completed_lesson_info=lesson_info_for_challenge, 
                                                                           points_earned_in_action=points_awarded_for_lesson)
                 if challenge_was_completed:
+                    # Check daily challenge achievements silently for AJAX
                     check_and_award_achievements(user, None if is_ajax else request, daily_challenge_completed=True)
 
+                response_message = f"'{lesson_obj.title}' marked as complete! (+{points_awarded_for_lesson} points)"
                 if not is_ajax:
-                    messages.success(request, f"'{lesson_obj.title}' marked as complete! +{lesson_obj.points_value} points. Streak: {user_streak.current_streak} day(s)!")
+                    messages.success(request, f"{response_message} Streak: {user_streak.current_streak} day(s)!")
                 
             else: # Already completed
+                response_message = f"'{lesson_obj.title}' was already marked as complete."
                 if not is_ajax:
-                    messages.info(request, f"'{lesson_obj.title}' was already marked as complete.")
+                    messages.info(request, response_message)
         
-        # If we reach here without error
+        # If successful, return updated context for AJAX
         if is_ajax:
-            return JsonResponse({'status': 'ok', 'message': 'Lesson marked complete.'})
+            updated_context = _get_user_dashboard_context(user)
+            return JsonResponse({'status': 'ok', 'message': response_message, 'context': updated_context})
             
     except Exception as e:
-        print(f"Error in mark_complete for user {user.id}, lesson {lesson_id}: {e}") # Log error
+        print(f"Error in mark_complete for user {user.id}, lesson {lesson_id}: {e}") 
+        response_message = f'An error occurred: {e}'
         if is_ajax:
-            return JsonResponse({'status': 'error', 'message': f'An error occurred: {e}'}, status=500)
+            return JsonResponse({'status': 'error', 'message': response_message}, status=500)
         else:
-            messages.error(request, f'An error occurred: {e}')
+            messages.error(request, response_message)
 
-    # Fallback redirect for non-AJAX or if AJAX failed before returning JSON
     return redirect('dashboard')
 
 @login_required
@@ -127,37 +142,40 @@ def mark_complete(request, lesson_id):
 def unmark_complete(request, lesson_id):
     user = request.user
     lesson = get_object_or_404(Lesson, id=lesson_id)
-    profile = user.profile
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    response_message = ""
 
     try:
         with transaction.atomic():
+            profile = UserProfile.objects.select_for_update().get(user=user)
             completion = Completion.objects.filter(user=user, lesson=lesson).first()
+            
             if completion:
                 points_to_subtract = lesson.points_value
                 profile.total_points = max(0, profile.total_points - points_to_subtract)
-                profile.save() # Save profile change
+                profile.save()
                 completion.delete()
-
+                # Note: Not recalculating streak/achievements on unmark for simplicity now
+                response_message = f"'{lesson.title}' marked as incomplete. (-{points_to_subtract} points)"
                 if not is_ajax:
-                    messages.success(request, 
-                        f"'{lesson.title}' marked as incomplete. (-{points_to_subtract} points)")
+                    messages.success(request, response_message)
             else:
+                response_message = f"'{lesson.title}' was already not marked as complete."
                 if not is_ajax:
-                    messages.info(request, f"'{lesson.title}' was already not marked as complete.")
+                    messages.info(request, response_message)
         
-        # If successful
         if is_ajax:
-            return JsonResponse({'status': 'ok', 'message': 'Lesson marked incomplete.'})
+            updated_context = _get_user_dashboard_context(user)
+            return JsonResponse({'status': 'ok', 'message': response_message, 'context': updated_context})
 
     except Exception as e:
-        print(f"Error in unmark_complete for user {user.id}, lesson {lesson_id}: {e}") # Log error
+        print(f"Error in unmark_complete for user {user.id}, lesson {lesson_id}: {e}") 
+        response_message = f'An error occurred: {e}'
         if is_ajax:
-            return JsonResponse({'status': 'error', 'message': f'An error occurred: {e}'}, status=500)
+            return JsonResponse({'status': 'error', 'message': response_message}, status=500)
         else:
             messages.error(request, f'An error occurred while undoing completion: {e}')
 
-    # Fallback redirect for non-AJAX or if AJAX failed before returning JSON
     return redirect('dashboard')
 
 def signup(request):
@@ -234,19 +252,21 @@ def reset_progress(request):
 
 @login_required
 def leaderboard(request):
+    user = request.user
+    check_and_award_achievements(user, request, view_context='leaderboard')
     # Get all users with their profiles, streaks, completions, achievements, and daily challenge status
     users = User.objects.filter(is_active=True).select_related('profile', 'streak').prefetch_related('completions', 'achievements', 'daily_challenge_instance')
 
     leaderboard_data = []
-    for user in users:
-        profile = getattr(user, 'profile', None)
-        streak = getattr(user, 'streak', None)
-        completions_count = user.completions.count()
-        achievements_count = user.achievements.count()
-        daily_challenge = getattr(user, 'daily_challenge_instance', None)
+    for u in users:
+        profile = getattr(u, 'profile', None)
+        streak = getattr(u, 'streak', None)
+        completions_count = u.completions.count()
+        achievements_count = u.achievements.count()
+        daily_challenge = getattr(u, 'daily_challenge_instance', None)
         daily_challenge_completed = daily_challenge.is_completed if daily_challenge else False
         leaderboard_data.append({
-            'username': user.username,
+            'username': u.username,
             'total_points': profile.total_points if profile else 0,
             'current_streak': streak.current_streak if streak else 0,
             'longest_streak': streak.longest_streak if streak else 0,
@@ -266,6 +286,7 @@ def leaderboard(request):
 @login_required
 def achievements_page(request):
     user = request.user
+    check_and_award_achievements(user, request, view_context='achievements')
     all_system_achievements = Achievement.objects.all().order_by('title')
     user_unlocked_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
     

@@ -4,6 +4,23 @@
 
 {% block title %}Dashboard - OdinTrack{% endblock %}
 
+{# Add Toastify CSS #}
+{% block extra_head %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<style>
+    /* Optional: Customize Toastify appearance */
+    .toastify {
+        border-radius: 12px !important; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        background: linear-gradient(135deg, rgba(50, 50, 50, 0.8), rgba(30, 30, 30, 0.85)) !important;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+    }
+    .toastify.on.toastify-right { right: 15px; }
+    .toastify.on.toastify-top { top: 75px; } /* Adjust position below navbar */
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4 px-lg-4" id="dashboard-content">
     <div class="row g-4">
@@ -80,65 +97,64 @@
         {# === Sidebar Column === #}
         <div class="col-lg-5 order-1 order-lg-2">
             
-            {# Stats Card - Minor style consistency check #}
+            {# Stats Card - Add IDs to elements for easier JS targeting #}
             <div class="glass-card p-3 p-md-4 mb-4 text-center">
                 <h4 class="mb-3"><i class="fas fa-chart-line me-2"></i>Progress & Stats</h4>
                 <div class="row mb-3 align-items-center">
                     <div class="col-6 border-end border-light">
                         <h5 class="stat-title">Overall Progress</h5>
-                        <p class="mb-1 text-muted">({{ user_completed_count }}/{{ total_lessons_count }} lessons)</p>
-                        <div class="progress mb-2" role="progressbar" aria-label="Course Progress" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100" style="height: 12px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: {{ progress_percentage }}%">{{ progress_percentage }}%</div>
+                        <p id="lesson-progress-text" class="mb-1 text-muted">({{ user_completed_count }}/{{ total_lessons_count }} lessons)</p>
+                        <div class="progress mb-2" id="overall-progress-bar-container" role="progressbar" aria-label="Course Progress" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100" style="height: 12px;">
+                            <div id="overall-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: {{ progress_percentage }}%">{{ progress_percentage }}%</div>
                         </div>
-                        <p class="mb-0"><strong>Points:</strong> <span class="badge bg-primary rounded-pill fs-6">{{ total_points }}</span></p>
+                        <p class="mb-0"><strong>Points:</strong> <span id="total-points-display" class="badge bg-primary rounded-pill fs-6">{{ total_points }}</span></p>
                     </div>
                     <div class="col-6">
                         <h5 class="stat-title"><i class="fas fa-fire me-1 text-danger"></i>Streaks</h5>
                         <p class="mb-1">
-                            <strong>Current:</strong> <span class="badge bg-success rounded-pill fs-6">{{ current_streak }} Day{{ current_streak|pluralize }}</span>
+                            <strong>Current:</strong> <span id="current-streak-display" class="badge bg-success rounded-pill fs-6">{{ current_streak }} Day{{ current_streak|pluralize }}</span>
                         </p>
                         <p class="mb-0">
-                            <strong>Longest:</strong> <span class="badge bg-info rounded-pill fs-6">{{ longest_streak }} Day{{ longest_streak|pluralize }}</span>
+                            <strong>Longest:</strong> <span id="longest-streak-display" class="badge bg-info rounded-pill fs-6">{{ longest_streak }} Day{{ longest_streak|pluralize }}</span>
                         </p>
-                         {% if last_activity_date %}
-                        <small class="text-muted d-block mt-1">Last active: {{ last_activity_date|date:"M d" }}</small>
-                        {% else %}
-                        <small class="text-muted d-block mt-1">No activity yet</small>
-                        {% endif %}
+                        <small id="last-activity-display" class="text-muted d-block mt-1">Last active: {{ last_activity_date_str }}</small>
                     </div>
                 </div>
             </div>
 
-            {# Daily Challenge Card - Minor style consistency check #}
-            {% if user_daily_challenge and user_daily_challenge.challenge %}
-                <div class="glass-card p-3 p-md-4 mb-4">
-                    <h4 class="text-center mb-3">
-                        <i class="fas fa-bullseye-pointer me-2 text-danger"></i>Daily Challenge
-                        {% if user_daily_challenge.is_completed %}
-                            <span class="badge bg-success rounded-pill ms-2 fs-6"><i class="fas fa-check-circle me-1"></i>Completed!</span>
-                        {% endif %}
-                    </h4>
-                    <div class="text-center">
-                        <h5 class="challenge-description">{{ user_daily_challenge.challenge.get_description }}</h5>
-                        {% if not user_daily_challenge.is_completed %}
-                            <p class="mb-1 text-muted">
-                                Progress: {{ user_daily_challenge.current_progress }} / {{ user_daily_challenge.challenge.target_value }}
-                            </p>
-                            <div class="progress mx-auto mb-2" style="max-width: 300px; height: 10px;" role="progressbar" aria-valuenow="{{ user_daily_challenge.current_progress }}" aria-valuemin="0" aria-valuemax="{{ user_daily_challenge.challenge.target_value }}">
-                                <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width: {% widthratio user_daily_challenge.current_progress user_daily_challenge.challenge.target_value 100 %}%"></div>
-                            </div>
-                            <small class="text-muted">Bonus: <span class="fw-bold">{{ user_daily_challenge.challenge.points_reward }}</span> points</small>
-                        {% else %}
-                             <p class="text-success"><i class="fas fa-gift me-1"></i>+{{ user_daily_challenge.challenge.points_reward }} bonus points earned!</p>
-                        {% endif %}
+            {# Daily Challenge Card - Add IDs/classes for JS targeting #}
+            <div id="daily-challenge-card" class="glass-card p-3 p-md-4 mb-4 {% if not user_daily_challenge.challenge %}d-none{% endif %}"> {# Hide if no challenge object initially #}
+                <h4 class="text-center mb-3">
+                    <i class="fas fa-bullseye-pointer me-2 text-danger"></i>Daily Challenge
+                    <span id="daily-challenge-completed-badge" class="badge bg-success rounded-pill ms-2 fs-6 {% if not user_daily_challenge.is_completed %}d-none{% endif %}">
+                        <i class="fas fa-check-circle me-1"></i>Completed!
+                    </span>
+                </h4>
+                <div class="text-center">
+                    <h5 id="daily-challenge-description" class="challenge-description">{{ user_daily_challenge.challenge.get_description|default:"No challenge today" }}</h5>
+                    <div id="daily-challenge-progress-area" class="{% if user_daily_challenge.is_completed %}d-none{% endif %}"> {# Hide progress if completed #}
+                        <p id="daily-challenge-progress-text" class="mb-1 text-muted">
+                            Progress: {{ user_daily_challenge.current_progress|default:0 }} / {{ user_daily_challenge.challenge.target_value|default:1 }}
+                        </p>
+                        <div id="daily-challenge-progress-bar-container" class="progress mx-auto mb-2" style="max-width: 300px; height: 10px;" role="progressbar" 
+                             aria-valuenow="{{ user_daily_challenge.current_progress|default:0 }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="{{ user_daily_challenge.challenge.target_value|default:1 }}">
+                            <div id="daily-challenge-progress-bar" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" 
+                                 style="width: {% widthratio user_daily_challenge.current_progress user_daily_challenge.challenge.target_value 100 %}%" ></div>
+                        </div>
+                        <small id="daily-challenge-reward-text" class="text-muted">Bonus: <span class="fw-bold">{{ user_daily_challenge.challenge.points_reward|default:0 }}</span> points</small>
+                    </div>
+                    <div id="daily-challenge-completed-message" class="{% if not user_daily_challenge.is_completed %}d-none{% endif %}"> {# Show message if completed #}
+                         <p class="text-success"><i class="fas fa-gift me-1"></i>+{{ user_daily_challenge.challenge.points_reward|default:0 }} bonus points earned!</p>
                     </div>
                 </div>
-            {% elif user_daily_challenge %} {# Case where challenge is assigned but somehow has no 'challenge' object - for robustness #}
-                <div class="glass-card p-3 p-md-4 mb-4 text-center">
-                    <h4 class="mb-2"><i class="fas fa-calendar-day me-2 text-muted"></i>Daily Challenge</h4>
-                    <p class="text-muted">Check back tomorrow for a new challenge!</p>
-                </div>
-            {% endif %}
+            </div>
+            {# Placeholder for when there is NO challenge object at all #}
+             <div id="no-daily-challenge-card" class="glass-card p-3 p-md-4 mb-4 text-center {% if user_daily_challenge.challenge %}d-none{% endif %}">
+                <h4 class="mb-2"><i class="fas fa-calendar-day me-2 text-muted"></i>Daily Challenge</h4>
+                <p class="text-muted">Check back tomorrow for a new challenge!</p>
+            </div>
 
             {# Recently Unlocked Achievements Section - Minor style consistency check #}
             {% if user_achievements %}
@@ -264,17 +280,109 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 </script>
 
-{# Add AJAX script for lesson completion #}
+{# Add Toastify JS #}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+{# Updated AJAX script for lesson completion with full context update & toasts #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const dashboardContent = document.getElementById('dashboard-content');
     const csrfToken = document.getElementById('csrfTokenInput').value;
 
+    // Function to display toast messages
+    function showToast(message, type = 'success') {
+        Toastify({
+            text: message,
+            duration: 3000,
+            close: true,
+            gravity: "top", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+                background: type === 'success' 
+                                ? "linear-gradient(to right, #00b09b, #96c93d)" 
+                                : "linear-gradient(to right, #ff5f6d, #ffc371)", // Error gradient
+            },
+            // onClick: function(){} // Callback after click
+        }).showToast();
+    }
+
+    // Function to update dashboard elements based on context data
+    function updateDashboardUI(context) {
+        // Update Points
+        const pointsDisplay = document.getElementById('total-points-display');
+        if (pointsDisplay) pointsDisplay.textContent = context.total_points;
+
+        // Update Progress Bar & Text
+        const progressText = document.getElementById('lesson-progress-text');
+        if (progressText) progressText.textContent = `(${context.user_completed_count}/${context.total_lessons_count} lessons)`;
+        const progressBar = document.getElementById('overall-progress-bar');
+        if (progressBar) {
+            progressBar.style.width = `${context.progress_percentage}%`;
+            progressBar.textContent = `${context.progress_percentage}%`;
+            progressBar.setAttribute('aria-valuenow', context.progress_percentage);
+        }
+
+        // Update Streaks
+        const currentStreak = document.getElementById('current-streak-display');
+        if (currentStreak) currentStreak.textContent = `${context.current_streak} Day${context.current_streak !== 1 ? 's' : ''}`;
+        const longestStreak = document.getElementById('longest-streak-display');
+        if (longestStreak) longestStreak.textContent = `${context.longest_streak} Day${context.longest_streak !== 1 ? 's' : ''}`;
+        const lastActivity = document.getElementById('last-activity-display');
+        if (lastActivity) lastActivity.textContent = `Last active: ${context.last_activity_date_str}`;
+
+        // Update Daily Challenge Card
+        const challengeCard = document.getElementById('daily-challenge-card');
+        const noChallengeCard = document.getElementById('no-daily-challenge-card');
+        if (challengeCard && noChallengeCard) {
+            if (context.daily_challenge) {
+                challengeCard.classList.remove('d-none');
+                noChallengeCard.classList.add('d-none');
+
+                const desc = document.getElementById('daily-challenge-description');
+                const progressArea = document.getElementById('daily-challenge-progress-area');
+                const progressTextEl = document.getElementById('daily-challenge-progress-text');
+                const progressBarCont = document.getElementById('daily-challenge-progress-bar-container');
+                const progressBarEl = document.getElementById('daily-challenge-progress-bar');
+                const rewardText = document.getElementById('daily-challenge-reward-text');
+                const completedBadge = document.getElementById('daily-challenge-completed-badge');
+                const completedMsg = document.getElementById('daily-challenge-completed-message');
+
+                if (desc) desc.textContent = context.daily_challenge.description;
+                if (rewardText) rewardText.innerHTML = `Bonus: <span class="fw-bold">${context.daily_challenge.points_reward}</span> points`;
+
+                if (context.daily_challenge.is_completed) {
+                    if (progressArea) progressArea.classList.add('d-none');
+                    if (completedBadge) completedBadge.classList.remove('d-none');
+                    if (completedMsg) completedMsg.classList.remove('d-none');
+                    if (completedMsg) completedMsg.innerHTML = `<p class="text-success"><i class="fas fa-gift me-1"></i>+${context.daily_challenge.points_reward} bonus points earned!</p>`;
+                } else {
+                    if (progressArea) progressArea.classList.remove('d-none');
+                    if (completedBadge) completedBadge.classList.add('d-none');
+                    if (completedMsg) completedMsg.classList.add('d-none');
+                    
+                    if(progressTextEl) progressTextEl.textContent = `Progress: ${context.daily_challenge.current_progress} / ${context.daily_challenge.target_value}`;
+                    if(progressBarCont) progressBarCont.setAttribute('aria-valuenow', context.daily_challenge.current_progress);
+                    if(progressBarCont) progressBarCont.setAttribute('aria-valuemax', context.daily_challenge.target_value);
+                    if(progressBarEl) {
+                        const challengeProgressPercent = context.daily_challenge.target_value > 0 
+                            ? (context.daily_challenge.current_progress / context.daily_challenge.target_value) * 100 
+                            : 0;
+                        progressBarEl.style.width = `${Math.min(challengeProgressPercent, 100)}%`; // Cap at 100%
+                    }
+                }
+            } else { // No active challenge for today
+                challengeCard.classList.add('d-none');
+                noChallengeCard.classList.remove('d-none');
+            }
+        }
+        // Note: Updating recent achievements would require more data in context or a separate request
+    }
+
     if (dashboardContent) {
         dashboardContent.addEventListener('click', function(event) {
             const button = event.target.closest('.lesson-toggle-btn');
-            if (!button) return; // Click wasn't on a relevant button
-
+            if (!button) return;
             event.preventDefault();
 
             const lessonId = button.dataset.lessonId;
@@ -288,77 +396,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // --- Optimistic UI Update --- 
-            button.disabled = true; // Prevent double clicks
+            button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
-            
             const isCompleting = currentStatus === 'incomplete';
             if (isCompleting) {
-                listItem.classList.add('completed-lesson'); // Optimistically add style
+                listItem.classList.add('completed-lesson');
             } else {
-                listItem.classList.remove('completed-lesson'); // Optimistically remove style
+                listItem.classList.remove('completed-lesson');
             }
 
-            // --- Send Fetch Request --- 
             fetch(actionUrl, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest', // Standard header for AJAX
-                    'Content-Type': 'application/json' // Optional, if sending data
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
                 },
-                // body: JSON.stringify({}), // Add body if needed
             })
             .then(response => {
                 if (!response.ok) {
-                    // Server returned an error status (4xx, 5xx)
                     return response.json().then(errData => {
                         throw new Error(errData.message || `Request failed with status ${response.status}`);
                     });
                 }
-                return response.json(); // Parse JSON response
+                return response.json();
             })
             .then(data => {
                 if (data.status === 'ok') {
-                    // --- Update UI on Success --- 
-                    // Swap the button content based on the new status
+                    // Update button UI
                     if (isCompleting) {
                         actionsContainer.innerHTML = `
                             <button type="button" 
                                     class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
                                     title="Mark as Incomplete"
                                     data-lesson-id="${lessonId}"
-                                    data-action-url="{% url 'unmark_complete' 0 %}".replace('0', lessonId) {# Construct reverse URL #}
+                                    data-action-url="{% url 'unmark_complete' 0 %}".replace('0', lessonId)
                                     data-current-status="completed">
                                 <i class="fas fa-check-circle me-1"></i> Completed
                             </button>
                         `;
-                        listItem.classList.add('completed-lesson'); // Ensure style is set
+                        listItem.classList.add('completed-lesson');
                     } else {
                         actionsContainer.innerHTML = `
                             <button type="button" 
                                     class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
                                     data-lesson-id="${lessonId}"
-                                    data-action-url="{% url 'mark_complete' 0 %}".replace('0', lessonId) {# Construct reverse URL #}
+                                    data-action-url="{% url 'mark_complete' 0 %}".replace('0', lessonId)
                                     data-current-status="incomplete">
                                 <i class="fas fa-check me-1"></i>Mark Complete
                             </button>
                         `;
-                        listItem.classList.remove('completed-lesson'); // Ensure style is removed
+                        listItem.classList.remove('completed-lesson');
                     }
-                    // Note: Point/Streak updates are handled via WebSocket triggered by backend save
-                    console.log('Lesson status updated successfully.');
+                    
+                    // Update the rest of the dashboard UI using the returned context
+                    if (data.context) {
+                        updateDashboardUI(data.context);
+                    }
+                    // Show success toast
+                    if(data.message) {
+                        showToast(data.message, 'success');
+                    }
                 } else {
-                    // Server returned status 'error' in JSON
                     throw new Error(data.message || 'Failed to update lesson status.');
                 }
             })
             .catch(error => {
-                // --- Revert UI on Failure --- 
                 console.error('Error updating lesson status:', error);
-                alert(`Error: ${error.message || 'Could not update lesson status.'}`);
+                // Show error toast
+                showToast(error.message || 'Could not update lesson status.', 'error');
                 
-                // Revert button
+                // Revert button and style
                 if (isCompleting) {
                      actionsContainer.innerHTML = `
                         <button type="button" 
