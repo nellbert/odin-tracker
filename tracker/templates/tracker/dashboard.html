@@ -20,11 +20,7 @@
                         <div class="card-body p-0"> 
                             <ul class="list-group list-group-flush lesson-list">
                                 {% for lesson in section.lessons.all %}
-<<<<<<< HEAD
                                     <li class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}" data-lesson-id="{{ lesson.id }}">
-=======
-                                    <li class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
->>>>>>> parent of 2f9a5c4 (Merge branch 'feature/live-stats' of https://github.com/nellbert/odin-tracker into feature/live-stats)
                                         <div class="flex-grow-1 me-3">
                                             <span class="lesson-type-badge me-2 rounded-pill px-2 py-1 small
                                                 {% if lesson.lesson_type == 'Project' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
