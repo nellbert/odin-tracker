@@ -91,7 +91,7 @@
                                                         class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
                                                         title="Mark as Incomplete"
                                                         data-lesson-id="{{ lesson.id }}"
-                                                        data-action-url="{% url 'unmark_complete' lesson.id %}"
+                                                        data-action-url="/tracker/unmark_complete/{{ lesson.id }}/"
                                                         data-current-status="completed">
                                                     <i class="fas fa-check-circle me-1"></i> Completed
                                                 </button>
@@ -99,7 +99,7 @@
                                                 <button type="button" 
                                                         class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
                                                         data-lesson-id="{{ lesson.id }}"
-                                                        data-action-url="{% url 'mark_complete' lesson.id %}"
+                                                        data-action-url="/tracker/mark_complete/{{ lesson.id }}/"
                                                         data-current-status="incomplete">
                                                     <i class="fas fa-check me-1"></i>Mark Complete
                                                 </button>
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
                                     title="Mark as Incomplete"
                                     data-lesson-id="${lessonId}"
-                                    data-action-url="{% url 'unmark_complete' 0 %}".replace('0', lessonId)
+                                    data-action-url="/tracker/unmark_complete/${lessonId}/"
                                     data-current-status="completed">
                                 <i class="fas fa-check-circle me-1"></i> Completed
                             </button>
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <button type="button" 
                                     class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
                                     data-lesson-id="${lessonId}"
-                                    data-action-url="{% url 'mark_complete' 0 %}".replace('0', lessonId)
+                                    data-action-url="/tracker/mark_complete/${lessonId}/"
                                     data-current-status="incomplete">
                                 <i class="fas fa-check me-1"></i>Mark Complete
                             </button>
@@ -510,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button type="button" 
                                 class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
                                 data-lesson-id="${lessonId}"
-                                data-action-url="{% url 'mark_complete' 0 %}".replace('0', lessonId)
+                                data-action-url="/tracker/mark_complete/${lessonId}/"
                                 data-current-status="incomplete">
                             <i class="fas fa-check me-1"></i>Mark Complete
                         </button>
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
                                 title="Mark as Incomplete"
                                 data-lesson-id="${lessonId}"
-                                data-action-url="{% url 'unmark_complete' 0 %}".replace('0', lessonId)
+                                data-action-url="/tracker/unmark_complete/${lessonId}/"
                                 data-current-status="completed">
                             <i class="fas fa-check-circle me-1"></i> Completed
                         </button>
