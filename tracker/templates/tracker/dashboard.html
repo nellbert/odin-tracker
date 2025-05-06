@@ -5,7 +5,7 @@
 {% block title %}Dashboard - OdinTrack{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4 px-lg-4">
+<div class="container-fluid mt-4 px-lg-4" id="dashboard-content">
     <div class="row g-4">
 
         {# === Main Content Column === #}
@@ -20,7 +20,7 @@
                         <div class="card-body p-0"> 
                             <ul class="list-group list-group-flush lesson-list">
                                 {% for lesson in section.lessons.all %}
-                                    <li class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
+                                    <li id="lesson-item-{{ lesson.id }}" class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
                                         <div class="flex-grow-1 me-3">
                                             <span class="lesson-type-badge me-2 rounded-pill px-2 py-1 small
                                                 {% if lesson.lesson_type == 'Project' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
@@ -39,20 +39,26 @@
                                         </div>
 
                                         <div class="text-end lesson-actions">
+                                            {% csrf_token %} {# Get token once for JS #}
+                                            <input type="hidden" id="csrfTokenInput" value="{{ csrf_token }}">
+
                                             {% if lesson.id in completed_lessons %}
-                                                <form method="post" action="{% url 'unmark_complete' lesson.id %}" style="display: inline;">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-outline-success completed-btn" title="Mark as Incomplete">
-                                                        <i class="fas fa-check-circle me-1"></i> Completed
-                                                    </button>
-                                                </form>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
+                                                        title="Mark as Incomplete"
+                                                        data-lesson-id="{{ lesson.id }}"
+                                                        data-action-url="{% url 'unmark_complete' lesson.id %}"
+                                                        data-current-status="completed">
+                                                    <i class="fas fa-check-circle me-1"></i> Completed
+                                                </button>
                                             {% else %}
-                                                <form method="post" action="{% url 'mark_complete' lesson.id %}" style="display: inline;">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-primary mark-complete-btn">
-                                                        <i class="fas fa-check me-1"></i>Mark Complete
-                                                    </button>
-                                                </form>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
+                                                        data-lesson-id="{{ lesson.id }}"
+                                                        data-action-url="{% url 'mark_complete' lesson.id %}"
+                                                        data-current-status="incomplete">
+                                                    <i class="fas fa-check me-1"></i>Mark Complete
+                                                </button>
                                             {% endif %}
                                         </div>
                                     </li>
@@ -256,6 +262,131 @@ document.addEventListener('DOMContentLoaded', function () {
             liveStandingsList.innerHTML = '<p class="text-center text-muted p-3">No live standings available yet.</p>';
         }
     }
+</script>
+
+{# Add AJAX script for lesson completion #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dashboardContent = document.getElementById('dashboard-content');
+    const csrfToken = document.getElementById('csrfTokenInput').value;
+
+    if (dashboardContent) {
+        dashboardContent.addEventListener('click', function(event) {
+            const button = event.target.closest('.lesson-toggle-btn');
+            if (!button) return; // Click wasn't on a relevant button
+
+            event.preventDefault();
+
+            const lessonId = button.dataset.lessonId;
+            const actionUrl = button.dataset.actionUrl;
+            const currentStatus = button.dataset.currentStatus;
+            const listItem = document.getElementById(`lesson-item-${lessonId}`);
+            const actionsContainer = button.parentElement;
+
+            if (!lessonId || !actionUrl || !listItem || !actionsContainer) {
+                console.error('Missing data attributes or elements for lesson toggle.');
+                return;
+            }
+
+            // --- Optimistic UI Update --- 
+            button.disabled = true; // Prevent double clicks
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+            
+            const isCompleting = currentStatus === 'incomplete';
+            if (isCompleting) {
+                listItem.classList.add('completed-lesson'); // Optimistically add style
+            } else {
+                listItem.classList.remove('completed-lesson'); // Optimistically remove style
+            }
+
+            // --- Send Fetch Request --- 
+            fetch(actionUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest', // Standard header for AJAX
+                    'Content-Type': 'application/json' // Optional, if sending data
+                },
+                // body: JSON.stringify({}), // Add body if needed
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // Server returned an error status (4xx, 5xx)
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || `Request failed with status ${response.status}`);
+                    });
+                }
+                return response.json(); // Parse JSON response
+            })
+            .then(data => {
+                if (data.status === 'ok') {
+                    // --- Update UI on Success --- 
+                    // Swap the button content based on the new status
+                    if (isCompleting) {
+                        actionsContainer.innerHTML = `
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
+                                    title="Mark as Incomplete"
+                                    data-lesson-id="${lessonId}"
+                                    data-action-url="{% url 'unmark_complete' 0 %}".replace('0', lessonId) {# Construct reverse URL #}
+                                    data-current-status="completed">
+                                <i class="fas fa-check-circle me-1"></i> Completed
+                            </button>
+                        `;
+                        listItem.classList.add('completed-lesson'); // Ensure style is set
+                    } else {
+                        actionsContainer.innerHTML = `
+                            <button type="button" 
+                                    class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
+                                    data-lesson-id="${lessonId}"
+                                    data-action-url="{% url 'mark_complete' 0 %}".replace('0', lessonId) {# Construct reverse URL #}
+                                    data-current-status="incomplete">
+                                <i class="fas fa-check me-1"></i>Mark Complete
+                            </button>
+                        `;
+                        listItem.classList.remove('completed-lesson'); // Ensure style is removed
+                    }
+                    // Note: Point/Streak updates are handled via WebSocket triggered by backend save
+                    console.log('Lesson status updated successfully.');
+                } else {
+                    // Server returned status 'error' in JSON
+                    throw new Error(data.message || 'Failed to update lesson status.');
+                }
+            })
+            .catch(error => {
+                // --- Revert UI on Failure --- 
+                console.error('Error updating lesson status:', error);
+                alert(`Error: ${error.message || 'Could not update lesson status.'}`);
+                
+                // Revert button
+                if (isCompleting) {
+                     actionsContainer.innerHTML = `
+                        <button type="button" 
+                                class="btn btn-sm btn-primary mark-complete-btn lesson-toggle-btn" 
+                                data-lesson-id="${lessonId}"
+                                data-action-url="{% url 'mark_complete' 0 %}".replace('0', lessonId)
+                                data-current-status="incomplete">
+                            <i class="fas fa-check me-1"></i>Mark Complete
+                        </button>
+                    `;
+                    listItem.classList.remove('completed-lesson');
+                } else {
+                    actionsContainer.innerHTML = `
+                         <button type="button" 
+                                class="btn btn-sm btn-outline-success completed-btn lesson-toggle-btn" 
+                                title="Mark as Incomplete"
+                                data-lesson-id="${lessonId}"
+                                data-action-url="{% url 'unmark_complete' 0 %}".replace('0', lessonId)
+                                data-current-status="completed">
+                            <i class="fas fa-check-circle me-1"></i> Completed
+                        </button>
+                    `;
+                   listItem.classList.add('completed-lesson');
+                }
+            });
+        });
+    }
+});
 </script>
 
 {# Custom CSS for Dashboard Enhancements (can be moved to a file later) #}
