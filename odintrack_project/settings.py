@@ -12,21 +12,30 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Optional: Load .env file if you use one for local development
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&zi&rg0kw2w+z#ym_s9e2)wj1i8t8o1pi^)s$u^$-ozr+ykw6z'
+# Use environment variable for SECRET_KEY, provide a dummy default ONLY if not using .env locally
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dummy-key-for-local-if-no-env')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Use environment variable for DEBUG, default to False
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
+# Use environment variable for ALLOWED_HOSTS
+ALLOWED_HOSTS_STRING = os.environ.get('ALLOWED_HOSTS', '')
+ALLOWED_HOSTS = ALLOWED_HOSTS_STRING.split(',') if ALLOWED_HOSTS_STRING else []
 
 
 # Application definition
@@ -75,12 +84,25 @@ WSGI_APPLICATION = 'odintrack_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Configure database using dj-database-url from DATABASE_URL env var
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600, # Recommended setting for persistent connections
+            ssl_require=True  # Often required for secure connections on Railway PG
+        )
     }
-}
+else:
+    # Fallback to local SQLite if DATABASE_URL is not set (for local dev)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
