@@ -5,82 +5,89 @@
 {% block title %}Dashboard - OdinTrack{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4 px-lg-4"> {# Use container-fluid for more width #}
-    <div class="row g-4"> {# Add gutter spacing g-4 #}
+<div class="container-fluid mt-4 px-lg-4">
+    <div class="row g-4">
 
         {# === Main Content Column === #}
-        <div class="col-lg-7 order-2 order-lg-1"> {# Order ensures this comes first visually on large screens #}
-            <h3 class="mb-3 text-center text-lg-start">Course Content</h3>
-            {% for section in sections %}
-                <div class="card glass-card mb-4">
-                    <div class="card-header bg-transparent border-bottom border-light">
-                        <h5 class="mb-0">{{ section.title }}</h5>
-                    </div>
-                    <div class="card-body p-0"> 
-                        <ul class="list-group list-group-flush">
-                            {% for lesson in section.lessons.all %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
-                                    <span class="flex-grow-1 me-3">
-                                        {% if lesson.lesson_type == 'Project' %}
-                                            <span class="badge bg-warning text-dark me-2 rounded-pill">Project</span>
-                                        {% else %}
-                                            <span class="badge bg-info text-dark me-2 rounded-pill">Lesson</span>
-                                        {% endif %}
+        <div class="col-lg-7 order-2 order-lg-1">
+            <div class="glass-card p-3 p-md-4 mb-4">
+                <h3 class="mb-4 text-center text-lg-start"><i class="fas fa-book-reader me-2"></i>Course Content</h3>
+                {% for section in sections %}
+                    <div class="glass-card mb-4 section-card"> {# Nested glass-card for each section #}
+                        <div class="card-header bg-transparent border-bottom-0 pt-3 pb-2">
+                            <h5 class="mb-0 section-title">{{ section.title }}</h5>
+                        </div>
+                        <div class="card-body p-0"> 
+                            <ul class="list-group list-group-flush lesson-list">
+                                {% for lesson in section.lessons.all %}
+                                    <li class="list-group-item lesson-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
+                                        <div class="flex-grow-1 me-3">
+                                            <span class="lesson-type-badge me-2 rounded-pill px-2 py-1 small
+                                                {% if lesson.lesson_type == 'Project' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                                <i class="fas {% if lesson.lesson_type == 'Project' %}fa-file-code{% else %}fa-chalkboard-teacher{% endif %} me-1"></i>
+                                                {{ lesson.lesson_type }}
+                                            </span>
 
-                                        {% if lesson.url %}
-                                            <a href="{{ lesson.url }}" target="_blank" class="text-decoration-none {% if lesson.id in completed_lessons %}text-muted{% else %}text-dark{% endif %}">{{ lesson.title }}</a>
-                                        {% else %}
-                                            {{ lesson.title }}
-                                        {% endif %}
-                                        <small class="text-muted d-block d-sm-inline mt-1 mt-sm-0"> ({{ lesson.points_value }} pts)</small>
-                                    </span>
+                                            {% if lesson.url %}
+                                                <a href="{{ lesson.url }}" target="_blank" class="lesson-title-link text-decoration-none {% if lesson.id in completed_lessons %}text-muted{% else %}text-dark{% endif %}">
+                                                    {{ lesson.title }}
+                                                </a>
+                                            {% else %}
+                                                <span class="lesson-title-link {% if lesson.id in completed_lessons %}text-muted{% else %}text-dark{% endif %}">{{ lesson.title }}</span>
+                                            {% endif %}
+                                            <small class="text-muted d-block d-sm-inline mt-1 mt-sm-0 ms-1"> ({{ lesson.points_value }} pts)</small>
+                                        </div>
 
-                                    <div class="text-end">
-                                        {% if lesson.id in completed_lessons %}
-                                            <form method="post" action="{% url 'unmark_complete' lesson.id %}" style="display: inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Mark as Incomplete">
-                                                    <i class="fas fa-check-circle me-1"></i> Completed
-                                                </button>
-                                            </form>
-                                        {% else %}
-                                            <form method="post" action="{% url 'mark_complete' lesson.id %}" style="display: inline;">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-primary">Mark Complete</button>
-                                            </form>
-                                        {% endif %}
-                                    </div>
-                                </li>
-                            {% empty %}
-                                <li class="list-group-item">No lessons in this section yet.</li>
-                            {% endfor %}
-                        </ul>
+                                        <div class="text-end lesson-actions">
+                                            {% if lesson.id in completed_lessons %}
+                                                <form method="post" action="{% url 'unmark_complete' lesson.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-success completed-btn" title="Mark as Incomplete">
+                                                        <i class="fas fa-check-circle me-1"></i> Completed
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <form method="post" action="{% url 'mark_complete' lesson.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-primary mark-complete-btn">
+                                                        <i class="fas fa-check me-1"></i>Mark Complete
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item text-muted">No lessons in this section yet.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            {% empty %}
-                <div class="glass-card p-4 text-center">
-                    <p>No course sections found. Add some in the <a href="{% url 'admin:index' %}">admin interface</a>!</p>
-                </div>
-            {% endfor %}
+                {% empty %}
+                    <div class="glass-card p-4 text-center">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No course sections found. Add some in the <a href="{% url 'admin:index' %}">admin interface</a>!</p>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
 
         {# === Sidebar Column === #}
-        <div class="col-lg-5 order-1 order-lg-2"> {# This column will stack below on smaller screens #}
+        <div class="col-lg-5 order-1 order-lg-2">
             
-            {# Stats Card #}
-            <div class="glass-card p-4 mb-4 text-center">
-                <h4 class="mb-3">Progress & Stats</h4>
+            {# Stats Card - Minor style consistency check #}
+            <div class="glass-card p-3 p-md-4 mb-4 text-center">
+                <h4 class="mb-3"><i class="fas fa-chart-line me-2"></i>Progress & Stats</h4>
                 <div class="row mb-3 align-items-center">
-                    <div class="col-6 border-end"> {# Use border for visual separation #}
-                        <h5>Overall Progress</h5>
-                        <p class="mb-1">({{ user_completed_count }}/{{ total_lessons_count }} lessons)</p>
-                        <div class="progress mb-2" role="progressbar" aria-label="Course Progress" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-bar" style="width: {{ progress_percentage }}%">{{ progress_percentage }}%</div>
+                    <div class="col-6 border-end border-light">
+                        <h5 class="stat-title">Overall Progress</h5>
+                        <p class="mb-1 text-muted">({{ user_completed_count }}/{{ total_lessons_count }} lessons)</p>
+                        <div class="progress mb-2" role="progressbar" aria-label="Course Progress" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100" style="height: 12px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: {{ progress_percentage }}%">{{ progress_percentage }}%</div>
                         </div>
-                        <p><strong>Points:</strong> <span class="badge bg-primary rounded-pill fs-6">{{ total_points }}</span></p>
+                        <p class="mb-0"><strong>Points:</strong> <span class="badge bg-primary rounded-pill fs-6">{{ total_points }}</span></p>
                     </div>
                     <div class="col-6">
-                        <h5><i class="fas fa-fire me-1" style="color: #ff9500;"></i>Streaks</h5>
+                        <h5 class="stat-title"><i class="fas fa-fire me-1 text-danger"></i>Streaks</h5>
                         <p class="mb-1">
                             <strong>Current:</strong> <span class="badge bg-success rounded-pill fs-6">{{ current_streak }} Day{{ current_streak|pluralize }}</span>
                         </p>
@@ -96,63 +103,60 @@
                 </div>
             </div>
 
-            {# Daily Challenge Card #}
+            {# Daily Challenge Card - Minor style consistency check #}
             {% if user_daily_challenge and user_daily_challenge.challenge %}
-                <div class="glass-card p-3 mb-4">
+                <div class="glass-card p-3 p-md-4 mb-4">
                     <h4 class="text-center mb-3">
-                        <i class="fas fa-bullseye me-2" style="color: #ff3b30;"></i>Daily Challenge
+                        <i class="fas fa-bullseye-pointer me-2 text-danger"></i>Daily Challenge
                         {% if user_daily_challenge.is_completed %}
-                            <span class="badge bg-success rounded-pill ms-2">Completed!</span>
+                            <span class="badge bg-success rounded-pill ms-2 fs-6"><i class="fas fa-check-circle me-1"></i>Completed!</span>
                         {% endif %}
                     </h4>
                     <div class="text-center">
-                        <h5>{{ user_daily_challenge.challenge.get_description }}</h5>
+                        <h5 class="challenge-description">{{ user_daily_challenge.challenge.get_description }}</h5>
                         {% if not user_daily_challenge.is_completed %}
-                            <p class="mb-1">
+                            <p class="mb-1 text-muted">
                                 Progress: {{ user_daily_challenge.current_progress }} / {{ user_daily_challenge.challenge.target_value }}
                             </p>
-                            <div class="progress mx-auto mb-2" style="max-width: 300px;" role="progressbar" aria-valuenow="{{ user_daily_challenge.current_progress }}" aria-valuemin="0" aria-valuemax="{{ user_daily_challenge.challenge.target_value }}">
-                                <div class="progress-bar bg-danger" style="width: {% widthratio user_daily_challenge.current_progress user_daily_challenge.challenge.target_value 100 %}%"></div>
+                            <div class="progress mx-auto mb-2" style="max-width: 300px; height: 10px;" role="progressbar" aria-valuenow="{{ user_daily_challenge.current_progress }}" aria-valuemin="0" aria-valuemax="{{ user_daily_challenge.challenge.target_value }}">
+                                <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width: {% widthratio user_daily_challenge.current_progress user_daily_challenge.challenge.target_value 100 %}%"></div>
                             </div>
-                            <small class="text-muted">Bonus: {{ user_daily_challenge.challenge.points_reward }} points</small>
+                            <small class="text-muted">Bonus: <span class="fw-bold">{{ user_daily_challenge.challenge.points_reward }}</span> points</small>
                         {% else %}
-                             <p class="text-success"><i class="fas fa-check-circle me-1"></i>+{{ user_daily_challenge.challenge.points_reward }} bonus points earned!</p>
+                             <p class="text-success"><i class="fas fa-gift me-1"></i>+{{ user_daily_challenge.challenge.points_reward }} bonus points earned!</p>
                         {% endif %}
                     </div>
                 </div>
-            {% elif user_daily_challenge %}
-                <div class="glass-card p-3 mb-4 text-center">
-                    <h4 class="mb-2"><i class="fas fa-bullseye me-2" style="color: #ff3b30;"></i>Daily Challenge</h4>
+            {% elif user_daily_challenge %} {# Case where challenge is assigned but somehow has no 'challenge' object - for robustness #}
+                <div class="glass-card p-3 p-md-4 mb-4 text-center">
+                    <h4 class="mb-2"><i class="fas fa-calendar-day me-2 text-muted"></i>Daily Challenge</h4>
                     <p class="text-muted">Check back tomorrow for a new challenge!</p>
                 </div>
             {% endif %}
 
-            {# Recently Unlocked Achievements Section #}
+            {# Recently Unlocked Achievements Section - Minor style consistency check #}
             {% if user_achievements %}
-            <div class="glass-card p-3 mb-4">
-                <h4 class="text-center mb-3"><i class="fas fa-medal me-2" style="color: #ffd700;"></i>Recent Achievements</h4>
+            <div class="glass-card p-3 p-md-4 mb-4">
+                <h4 class="text-center mb-4"><i class="fas fa-medal me-2 text-warning"></i>Recent Achievements</h4>
                 <div class="row g-2 justify-content-center">
                     {% for user_ach in user_achievements %}
-                        <div class="col-auto" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ user_ach.achievement.description }} ({{ user_ach.achievement.points_reward }} pts) - Awarded: {{ user_ach.awarded_at|date:'M d, Y' }}">
-                            <div class="text-center p-2 border rounded-3" style="background-color: rgba(255,255,255,0.1); min-width: 80px;">
-                                <i class="{{ user_ach.achievement.icon_class|default:'fas fa-star' }} fa-2x mb-1" style="color: #ffc107;"></i>
-                                <small class="d-block text-muted" style="font-size: 0.75rem;">{{ user_ach.achievement.title }}</small>
+                        <div class="col-auto achievement-item" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ user_ach.achievement.description }} ({{ user_ach.achievement.points_reward }} pts) - Awarded: {{ user_ach.awarded_at|date:'M d, Y' }}">
+                            <div class="text-center p-2 border rounded-pill" style="background-color: rgba(255,255,255,0.05);">
+                                <i class="{{ user_ach.achievement.icon_class|default:'fas fa-star' }} fa-2x mb-1" style="color: var(--bs-warning);"></i>
+                                <small class="d-block text-muted achievement-title">{{ user_ach.achievement.title }}</small>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
-                 {# <div class="text-center mt-2"><a href="#" class="text-decoration-none">View all achievements...</a></div> #}
             </div>
             {% endif %}
 
-            {# User Stats Section #}
-            <div class="glass-card p-3 mb-4">
-                <h4 class="text-center mb-3">Live User Stats</h4>
-                <div id="user-stats-live">
-                    <p>Loading live stats...</p>
-                    <ul id="user-stats-list" class="list-group">
-                        {# User stats will be populated here by WebSocket #}
-                    </ul>
+            {# Live User Stats Section - Revamped #}
+            <div class="glass-card p-3 p-md-4 mb-4">
+                <h4 class="text-center mb-3"><i class="fas fa-users me-2"></i>Live Standings</h4>
+                <div id="user-stats-live-dashboard" class="live-standings-list">
+                    <p class="text-center text-muted loading-stats">Loading live standings...</p>
+                    {# User stats will be populated here by WebSocket, styled like compact leaderboard entries #}
                 </div>
             </div>
 
@@ -170,69 +174,167 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-{# Add WebSocket JavaScript #}
+{# WebSocket JavaScript - Adapted for new live stats container #}
 <script>
-    const userStatsList = document.getElementById('user-stats-list');
-    const liveStatsDiv = document.getElementById('user-stats-live');
+    const liveStandingsList = document.getElementById('user-stats-live-dashboard');
 
-    // Construct WebSocket URL
     const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
     const wsPath = wsScheme + '://' + window.location.host + '/ws/live_stats/';
 
-    console.log("Connecting to WebSocket at:", wsPath);
-    const socket = new WebSocket(wsPath);
+    console.log("Connecting to Dashboard WebSocket at:", wsPath);
+    const dashboardSocket = new WebSocket(wsPath);
 
-    socket.onopen = function(e) {
-        console.log("WebSocket connection established");
-        // Optional: Send a message if needed upon connection
-        // socket.send(JSON.stringify({ 'message': 'Hello Server!' }));
+    dashboardSocket.onopen = function(e) {
+        console.log("Dashboard WebSocket connection established");
     };
 
-    socket.onmessage = function(e) {
+    dashboardSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        console.log("Message from server:", data);
+        console.log("Dashboard message from server:", data);
 
         if (data.type === 'full_stats_load' || data.type === 'stats_update') {
-            updateStatsList(data.stats);
+            updateLiveStandings(data.stats);
         }
     };
 
-    socket.onclose = function(e) {
-        console.error('WebSocket connection closed unexpectedly:', e);
-        liveStatsDiv.innerHTML = '<p class="text-danger">Live stats connection lost. Please refresh.</p>';
+    dashboardSocket.onclose = function(e) {
+        console.error('Dashboard WebSocket connection closed unexpectedly:', e);
+        if (liveStandingsList) {
+            liveStandingsList.innerHTML = '<p class="text-center text-danger p-3">Live standings connection lost. Please refresh.</p>';
+        }
     };
 
-    socket.onerror = function(err) {
-        console.error('WebSocket error:', err);
-        liveStatsDiv.innerHTML = '<p class="text-warning">Could not connect to live stats.</p>';
+    dashboardSocket.onerror = function(err) {
+        console.error('Dashboard WebSocket error:', err);
+        if (liveStandingsList) {
+            liveStandingsList.innerHTML = '<p class="text-center text-warning p-3">Could not connect to live standings.</p>';
+        }
     };
 
-    function updateStatsList(stats) {
-        // Clear previous list items
-        userStatsList.innerHTML = '';
+    function updateLiveStandings(stats) {
+        if (!liveStandingsList) return;
+        liveStandingsList.innerHTML = ''; // Clear previous entries
 
         if (stats && stats.length > 0) {
-            stats.forEach(userStat => {
-                const listItem = document.createElement('li');
-                listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-                listItem.textContent = userStat.username;
+            // Determine current user for highlighting
+            const currentUsername = "{{ request.user.username }}"; 
 
-                const pointsBadge = document.createElement('span');
-                pointsBadge.classList.add('badge', 'bg-primary', 'rounded-pill');
-                pointsBadge.textContent = userStat.points;
+            stats.slice(0, 5).forEach((userStat, index) => { // Show top 5 for example
+                const entryDiv = document.createElement('div');
+                entryDiv.classList.add('live-standing-entry', 'glass-card', 'p-2', 'mb-2');
+                if (userStat.username === currentUsername) {
+                    entryDiv.classList.add('current-user-highlight-dashboard');
+                }
 
-                listItem.appendChild(pointsBadge);
-                userStatsList.appendChild(listItem);
+                // Add special styling for top 1 if desired
+                if (index === 0) {
+                    entryDiv.classList.add('rank-1-dashboard');
+                }
+
+                entryDiv.innerHTML = `
+                    <div class="row g-2 align-items-center">
+                        <div class="col-auto rank-display-dashboard">
+                            <span class="fw-bold fs-5">${index + 1}</span>
+                        </div>
+                        <div class="col username-dashboard">
+                            <span class="fw-semibold">${userStat.username}</span>
+                        </div>
+                        <div class="col-auto points-dashboard">
+                            <span class="badge bg-primary rounded-pill">
+                                <i class="fas fa-star me-1"></i>${userStat.points}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                liveStandingsList.appendChild(entryDiv);
             });
-            // Remove the initial "Loading..." text if it's still there
-            const loadingP = liveStatsDiv.querySelector('p');
-            if(loadingP && loadingP.textContent.includes('Loading')) {
-                loadingP.remove();
-            }
+             // Remove "Loading..." text
+            const loadingP = liveStandingsList.querySelector('.loading-stats');
+            if(loadingP) loadingP.remove();
+
         } else {
-            userStatsList.innerHTML = '<li class="list-group-item">No user stats available.</li>';
+            liveStandingsList.innerHTML = '<p class="text-center text-muted p-3">No live standings available yet.</p>';
         }
     }
-
 </script>
+
+{# Custom CSS for Dashboard Enhancements (can be moved to a file later) #}
+<style>
+    .section-card {
+        /* Styles for nested section cards if different from top-level glass-cards */
+        /* background: rgba(255,255,255,0.1); Slightly different background for nesting */
+        /* border: 1px solid rgba(255,255,255,0.15); */
+    }
+    .section-title {
+        color: var(--heading-color);
+    }
+    .lesson-list .list-group-item {
+        background-color: transparent;
+        border-bottom: 1px solid var(--list-item-border-color, rgba(0,0,0,0.05));
+        padding: 0.85rem 1.25rem;
+        transition: background-color 0.2s ease-in-out;
+    }
+    .lesson-list .list-group-item:last-child {
+        border-bottom: none;
+    }
+    .lesson-list .list-group-item:hover {
+        background-color: var(--list-item-hover-bg, rgba(0,0,0,0.03));
+    }
+    .lesson-type-badge {
+        font-weight: 500;
+    }
+    .lesson-title-link {
+        font-weight: 500;
+    }
+    .lesson-actions .btn {
+        /* Ensure buttons are styled according to visionOS theme */
+    }
+    .completed-btn {
+        /* Specific style for completed button if different from primary */
+    }
+    .stat-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+    .achievement-item .rounded-pill {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .achievement-item .rounded-pill:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-hover-shadow);
+    }
+    .achievement-title {
+        font-size: 0.7rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 70px; /* Adjust as needed */
+    }
+    .live-standings-list .loading-stats {
+         margin-top: 1rem;
+    }
+    .live-standing-entry {
+        /* background: rgba(var(--bs-light-rgb), 0.7); */
+        /* backdrop-filter: blur(5px) saturate(150%); */
+        border-radius: 18px; /* Match button/input rounding */
+        transition: all 0.2s ease-in-out;
+    }
+    .live-standing-entry:hover {
+        transform: scale(1.02);
+        box-shadow: var(--card-hover-shadow);
+    }
+    .current-user-highlight-dashboard {
+        background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+        border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    }
+    .rank-1-dashboard {
+        /* Optional: Special border/background for top player in dashboard live stats */
+        /* border-left: 3px solid var(--bs-warning) !important; */
+    }
+    .rank-display-dashboard { min-width: 30px; text-align: center; }
+    .username-dashboard { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .points-dashboard .badge { font-size: 0.9em; }
+
+</style>
 {% endblock %} 
