@@ -6,23 +6,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}OdinTrack{% endblock %}</title>
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <!-- Font Awesome CSS (for icons like streaks) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
     <!-- Custom visionOS Styles -->
     <link rel="stylesheet" href="{% static 'css/visionos_style.css' %}">
-
     <style>
-        body { padding-top: 5rem; } /* Add padding for fixed navbar */
-        .completed-lesson { text-decoration: line-through; color: grey; }
+        body { padding-top: 5rem; }
+        .navbar-glass {
+            background: var(--navbar-bg, rgba(245,247,250,0.8));
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-bottom: 1px solid var(--navbar-border-color, rgba(0,0,0,0.06));
+        }
+        .navbar .nav-link, .navbar .navbar-brand {
+            font-weight: 500;
+            font-size: 1.08rem;
+            letter-spacing: 0.01em;
+        }
+        .navbar .nav-link.active, .navbar .nav-link:focus {
+            color: var(--link-color) !important;
+            background-color: var(--link-hover-bg);
+            border-radius: 10px;
+        }
+        .navbar .nav-link i {
+            margin-right: 0.5em;
+        }
+        .navbar-points-badge {
+            font-size: 1rem;
+            margin-left: 0.5em;
+            vertical-align: middle;
+        }
+        .navbar .btn-signup {
+            margin-left: 0.5em;
+        }
+        .navbar .dropdown-menu {
+            border-radius: 18px;
+            min-width: 220px;
+        }
+        .navbar .dropdown-item i {
+            margin-right: 0.5em;
+        }
+        .navbar .navbar-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: 0.03em;
+        }
+        .navbar .user-points {
+            font-size: 1rem;
+            margin-left: 0.5em;
+        }
+        .navbar .user-points .badge {
+            font-size: 1rem;
+            vertical-align: middle;
+        }
         .progress { margin-bottom: 1rem; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-md fixed-top">
+<nav class="navbar navbar-expand-md fixed-top navbar-glass">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'dashboard' %}">OdinTrack</a>
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
+            <i class="fas fa-hat-wizard me-2 text-primary"></i> OdinTrack
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -30,42 +78,49 @@
             <ul class="navbar-nav me-auto mb-2 mb-md-0">
                 {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="{% url 'dashboard' %}">Dashboard</a>
+                        <a class="nav-link{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'leaderboard' %}">Leaderboard</a>
+                        <a class="nav-link{% if request.resolver_match.url_name == 'leaderboard' %} active{% endif %}" href="{% url 'leaderboard' %}">Leaderboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'achievements_list' %}">My Achievements</a>
+                        <a class="nav-link{% if request.resolver_match.url_name == 'achievements_list' %} active{% endif %}" href="{% url 'achievements_list' %}">Achievements</a>
+                    </li>
+                    <li class="nav-item d-md-none">
+                        <a class="nav-link{% if request.resolver_match.url_name == 'user_settings' %} active{% endif %}" href="{% url 'user_settings' %}">Settings</a>
                     </li>
                 {% endif %}
             </ul>
-            <ul class="navbar-nav ms-auto mb-2 mb-md-0">
+            <ul class="navbar-nav ms-auto mb-2 mb-md-0 align-items-center">
                  {% if user.is_authenticated %}
-                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Welcome, {{ user.username }}!
+                     <li class="nav-item d-none d-md-block">
+                        <span class="user-points">
+                            <i class="fas fa-star text-warning"></i>
+                            <span class="badge bg-primary rounded-pill">{{ user.profile.total_points|default:"0" }} points</span>
+                        </span>
+                     </li>
+                     <li class="nav-item dropdown ms-2">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            {{ user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><span class="dropdown-item-text">Total Points: {{ user.profile.total_points|default:"0" }}</span></li>
+                            <li><span class="dropdown-item-text"><i class="fas fa-star text-warning"></i> Points: <span class="badge bg-primary rounded-pill">{{ user.profile.total_points|default:"0" }}</span></span></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'user_settings' %}"><i class="fas fa-cog fa-fw me-2"></i>Settings</a></li>
+                            <li><a class="dropdown-item" href="{% url 'user_settings' %}">Settings</a></li>
                             <li>
                                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt fa-fw me-2"></i>Logout</button>
+                                    <button type="submit" class="dropdown-item">Logout</button>
                                 </form>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
                         </ul>
                     </li>
-
                  {% else %}
                      <li class="nav-item">
-                         <a class="nav-link" href="{% url 'login' %}">Login</a>
+                         <a class="nav-link" href="{% url 'login' %}">Log In</a>
                      </li>
                      <li class="nav-item">
-                         <a class="nav-link" href="{% url 'signup' %}">Sign Up</a>
+                         <a class="btn btn-primary btn-signup ms-2" href="{% url 'signup' %}">Sign Up</a>
                      </li>
                  {% endif %}
             </ul>
@@ -74,12 +129,10 @@
 </nav>
 
 <main class="container mt-4">
-    {# Add extra padding at the bottom #}
     <div class="pb-5">
         {% if messages %}
             <div class="mt-3">
                 {% for message in messages %}
-                    {# Add glass-card style to alerts for consistency? Optional. #}
                     <div class="alert alert-{{ message.tags }} alert-dismissible fade show glass-card mb-3" role="alert">
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -94,7 +147,7 @@
 </main>
 
 <!-- Bootstrap 5 Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
 {% block extra_js %}
 {% endblock %}
