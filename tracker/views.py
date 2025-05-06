@@ -48,8 +48,10 @@ def dashboard(request):
     # Assign or get current daily challenge
     user_daily_challenge = assign_new_daily_challenge(user)
 
-    # Check for achievements on dashboard load (for cumulative ones)
-    check_and_award_achievements(user, request)
+    # Check for achievements that might be awarded just by loading the dashboard
+    # (Currently none fit this category, point/streak milestones are checked on update)
+    # Consider adding a check here if needed for time-based or login-based achievements later
+    # check_and_award_achievements(user, request) # Example placeholder
 
     context = {
         'sections': sections,
@@ -75,7 +77,8 @@ def mark_complete(request, lesson_id):
     # Get or create the streak record for the user
     user_streak, streak_created = UserStreak.objects.get_or_create(user=user)
 
-    points_awarded_for_lesson = 0 # Track points from this lesson completion
+    points_awarded_for_lesson = 0
+    awarded_new_achievement = False # Flag to track if any achievement was awarded in this action
 
     # Use transaction.atomic to ensure database consistency
     try:
@@ -96,7 +99,10 @@ def mark_complete(request, lesson_id):
                 user_streak.update_streak()
 
                 # Check for achievements after a lesson is completed
-                check_and_award_achievements(user, request, completed_lesson=lesson_obj)
+                check_and_award_achievements(user, request, 
+                                           completed_lesson=lesson_obj, 
+                                           profile=profile, 
+                                           streak=user_streak)
 
                 messages.success(request, f"'{lesson_obj.title}' marked as complete! +{lesson_obj.points_value} points. Streak: {user_streak.current_streak} day(s)!")
                 
@@ -105,7 +111,12 @@ def mark_complete(request, lesson_id):
                     'lesson_type': lesson_obj.lesson_type,
                     'points_earned': lesson_obj.points_value # This specific lesson's points
                 }
-                update_daily_challenge_progress(user, request, completed_lesson_info=lesson_info_for_challenge, points_earned_in_action=points_awarded_for_lesson)
+                challenge_was_completed = update_daily_challenge_progress(user, request, 
+                                                                          completed_lesson_info=lesson_info_for_challenge, 
+                                                                          points_earned_in_action=points_awarded_for_lesson)
+                # Check daily challenge achievements if the challenge was just completed
+                if challenge_was_completed:
+                    check_and_award_achievements(user, request, daily_challenge_completed=True)
             else:
                 # If already existed
                 messages.info(request, f"'{lesson_obj.title}' was already marked as complete.")
@@ -222,6 +233,8 @@ def reset_progress(request):
                 # and let it be recreated on next dashboard load. Resetting fields is safer.
 
             messages.success(request, "Your progress has been successfully reset!")
+            # Award the reset achievement AFTER the reset is successful
+            check_and_award_achievements(user, request, view_context='reset')
 
     except Exception as e:
         messages.error(request, f"An error occurred while resetting progress: {e}")
@@ -257,6 +270,9 @@ def leaderboard(request):
     # Sort by total_points descending, then lessons_completed, then achievements_earned
     leaderboard_data.sort(key=lambda x: (-x['total_points'], -x['lessons_completed'], -x['achievements_earned']))
 
+    # Check for viewing achievement at the start
+    check_and_award_achievements(request.user, request, view_context='leaderboard')
+
     context = {
         'leaderboard': leaderboard_data,
     }
@@ -288,6 +304,9 @@ def achievements_page(request):
             
     total_achievements_count = all_system_achievements.count()
     unlocked_count = len(unlocked_achievements_data)
+
+    # Check for viewing achievement at the start
+    check_and_award_achievements(user, request, view_context='achievements')
 
     context = {
         'all_achievements_data': all_achievements_data,

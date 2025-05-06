@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 from .models import User, DailyChallenge, UserDailyChallenge, UserProfile, Completion, Lesson
 import random
+from .achievements import check_and_award_achievements # Import achievement checker
 
 def assign_new_daily_challenge(user):
     """Assigns a new random daily challenge if the user doesn't have one for today or it's the first time."""
@@ -46,7 +47,7 @@ def assign_new_daily_challenge(user):
     # Always return the instance for the current user (which might be from today, completed or not)
     return user_challenge_instance
 
-def update_daily_challenge_progress(user, request=None, completed_lesson_info=None, points_earned_in_action=0):
+def update_daily_challenge_progress(user, request, completed_lesson_info=None, points_earned_in_action=0):
     """Updates the user's active daily challenge progress and awards if completed (only once)."""
     today = timezone.now().date()
     # Retrieve the challenge instance assigned for today or create if missing (should be handled by assign_new)
@@ -54,7 +55,7 @@ def update_daily_challenge_progress(user, request=None, completed_lesson_info=No
 
     # Only proceed if there is an instance assigned for today and it has a challenge and it's not already marked completed
     if not user_challenge_instance or not user_challenge_instance.challenge or user_challenge_instance.is_completed:
-        return 
+        return False
 
     challenge = user_challenge_instance.challenge
     updated = False
@@ -76,7 +77,7 @@ def update_daily_challenge_progress(user, request=None, completed_lesson_info=No
                  user_challenge_instance.current_progress = max(0, points_progress)
                  updated = True
         except UserProfile.DoesNotExist:
-            return 
+            return False
 
     elif challenge.challenge_type == 'COMPLETE_PROJECT':
         if completed_lesson_info and completed_lesson_info.get('lesson_type') == 'Project':
@@ -88,21 +89,38 @@ def update_daily_challenge_progress(user, request=None, completed_lesson_info=No
         user_challenge_instance.save()
 
     # Check for completion - Award points ONLY if newly completed
-    if user_challenge_instance.current_progress >= challenge.target_value and user_challenge_instance.completed_date is None:
+    is_now_complete = False
+    if challenge.challenge_type == 'EARN_N_POINTS':
+        # Points challenge completion check
+        is_now_complete = (user_challenge_instance.current_progress >= challenge.target_value)
+    else:
+        # Other challenges check progress against target
+        is_now_complete = (user_challenge_instance.current_progress >= challenge.target_value)
+
+    if is_now_complete:
         user_challenge_instance.completed_date = today
         user_challenge_instance.save() # Save completion date first
         
         # Award points for challenge completion (now happens only once)
-        try:
-            profile = UserProfile.objects.get(user=user)
-            profile.total_points += challenge.points_reward
-            profile.save()
-            if request:
-                messages.success(request, 
-                    f"🏆 Daily Challenge Completed: {challenge.title}! (+{challenge.points_reward} bonus points)")
-        except UserProfile.DoesNotExist:
-            pass # Should not happen
+        if challenge.points_reward > 0:
+            try:
+                profile = UserProfile.objects.get(user=user)
+                profile.total_points += challenge.points_reward
+                profile.save() # Save profile FIRST
+                messages.success(request, f"🏆 Daily Challenge Completed: {challenge.title}! +{challenge.points_reward} bonus points.")
+                # Now check for point-based achievements *after* saving profile
+                check_and_award_achievements(user, request, profile=profile) 
+            except UserProfile.DoesNotExist:
+                pass # Handle error if profile doesn't exist
+        else:
+             messages.success(request, f"🏆 Daily Challenge Completed: {challenge.title}!")
         
         # Potentially trigger other things, like an achievement for completing X daily challenges
         # from tracker.achievements import check_and_award_achievements # Avoid circular import by calling directly if needed
         # check_and_award_achievements(user, request) # Re-check if completing challenge unlocks other achievements 
+        return True
+    
+    return False
+
+    # Always return the instance for the current user (which might be from today, completed or not)
+    return user_challenge_instance 
