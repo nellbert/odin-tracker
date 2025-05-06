@@ -5,44 +5,126 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2 class="mb-4 text-center">Leaderboard</h2>
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th scope="col">Rank</th>
-                    <th scope="col">Username</th>
-                    <th scope="col">Points</th>
-                    <th scope="col">Lessons Completed</th>
-                    <th scope="col">Achievements</th>
-                    <th scope="col">Current Streak</th>
-                    <th scope="col">Longest Streak</th>
-                    <th scope="col">Daily Challenge</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in leaderboard %}
-                <tr{% if user.username == request.user.username %} class="table-success"{% endif %}>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ user.username }}</td>
-                    <td><span class="badge bg-primary fs-6">{{ user.total_points }}</span></td>
-                    <td>{{ user.lessons_completed }}</td>
-                    <td>{{ user.achievements_earned }}</td>
-                    <td>{{ user.current_streak }}</td>
-                    <td>{{ user.longest_streak }}</td>
-                    <td>
-                        {% if user.daily_challenge_completed %}
-                            <span class="badge bg-success">Completed</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Incomplete</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="8" class="text-center">No users found.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="glass-card p-4 p-md-5">
+        <header class="text-center mb-5">
+            <h1 class="display-5 fw-bold"><i class="fas fa-trophy me-2 text-warning"></i>Global Rankings</h1>
+            <p class="lead text-muted">See how you stack up against other learners!</p>
+        </header>
+
+        <div class="leaderboard-list">
+            {% for entry in leaderboard %}
+                {% with forloop.counter as rank %}
+                <div class="leaderboard-entry glass-card mb-3 p-3 {% if entry.username == request.user.username %}current-user-highlight{% endif %}
+                            {% if rank == 1 %}rank-1{% elif rank == 2 %}rank-2{% elif rank == 3 %}rank-3{% endif %}">
+                    <div class="row align-items-center">
+                        <div class="col-auto text-center" style="min-width: 60px;">
+                            {% if rank == 1 %}
+                                <span class="rank-badge rank-gold"><i class="fas fa-crown"></i></span>
+                            {% elif rank == 2 %}
+                                <span class="rank-badge rank-silver"><i class="fas fa-medal"></i></span>
+                            {% elif rank == 3 %}
+                                <span class="rank-badge rank-bronze"><i class="fas fa-award"></i></span>
+                            {% else %}
+                                <span class="rank-number fs-4 fw-bold text-muted">{{ rank }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <h5 class="mb-1 username">{{ entry.username }}</h5>
+                            <div class="points-display mb-2">
+                                <span class="badge bg-primary rounded-pill fs-5 me-2">
+                                    <i class="fas fa-star me-1"></i>{{ entry.total_points }} Points
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-auto mt-3 mt-md-0">
+                            <div class="d-flex flex-wrap justify-content-md-end">
+                                <span class="stat-item me-3 mb-2" title="Lessons Completed">
+                                    <i class="fas fa-book-open text-info me-1"></i> {{ entry.lessons_completed }}
+                                </span>
+                                <span class="stat-item me-3 mb-2" title="Achievements Earned">
+                                    <i class="fas fa-medal text-warning me-1"></i> {{ entry.achievements_earned }}
+                                </span>
+                                <span class="stat-item me-3 mb-2" title="Current Streak">
+                                    <i class="fas fa-fire text-danger me-1"></i> {{ entry.current_streak }}
+                                </span>
+                                <span class="stat-item mb-2" title="Longest Streak">
+                                    <i class="fas fa-shield-alt text-success me-1"></i> {{ entry.longest_streak }}
+                                </span>
+                            </div>
+                             {% if entry.daily_challenge_completed %}
+                                <div class="text-md-end mt-1">
+                                     <span class="badge bg-success rounded-pill" title="Today's Daily Challenge Completed!"><i class="fas fa-check-circle me-1"></i>Daily Done</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+            {% empty %}
+                <div class="text-center p-5 glass-card">
+                    <i class="fas fa-ghost fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">The leaderboard is quiet for now...</h4>
+                    <p class="text-muted">Be the first to climb the ranks!</p>
+                </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
+
+<style>
+    .leaderboard-entry {
+        transition: all 0.3s ease;
+        border-left: 5px solid transparent; /* For rank highlighting */
+    }
+    .leaderboard-entry:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: var(--card-hover-shadow);
+    }
+    .current-user-highlight {
+        /* Use a subtle but distinct background or border from your theme */
+        background-color: rgba(var(--bs-primary-rgb), 0.05); /* Example: slightly tinted primary color */
+        border-left-color: var(--bs-primary); /* Example: primary color border */
+        box-shadow: 0 0 15px rgba(var(--bs-primary-rgb), 0.2);
+    }
+    .rank-badge {
+        font-size: 1.8rem;
+        padding: 0.5rem;
+        display: inline-block;
+    }
+    .rank-gold { color: #FFD700; }
+    .rank-silver { color: #C0C0C0; }
+    .rank-bronze { color: #CD7F32; }
+    .rank-number {
+         /* Style for ranks 4+ */
+    }
+    .username {
+        font-weight: 600;
+        color: var(--heading-color);
+    }
+    .points-display .badge {
+        /* Ensure this badge stands out a bit more if needed */
+    }
+    .stat-item {
+        font-size: 0.9rem;
+        color: var(--text-color);
+        background-color: rgba(0,0,0,0.03);
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px; /* Consistent with btn/input rounding */
+    }
+    .stat-item i {
+        font-size: 0.8rem;
+    }
+
+    /* Specific styling for top ranks if desired beyond just icons */
+    .leaderboard-entry.rank-1 {
+        /* border-color: #FFD700; */
+        /* background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%); */
+    }
+    .leaderboard-entry.rank-2 {
+        /* border-color: #C0C0C0; */
+    }
+    .leaderboard-entry.rank-3 {
+        /* border-color: #CD7F32; */
+    }
+</style>
 {% endblock %} 
