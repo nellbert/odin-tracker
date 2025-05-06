@@ -229,4 +229,35 @@ def reset_progress(request):
         return redirect('user_settings')
 
     # Redirect to dashboard after successful reset
-    return redirect('dashboard') 
+    return redirect('dashboard')
+
+@login_required
+def leaderboard(request):
+    # Get all users with their profiles, streaks, completions, achievements, and daily challenge status
+    users = User.objects.filter(is_active=True).select_related('profile', 'streak').prefetch_related('completions', 'achievements', 'daily_challenge_instance')
+
+    leaderboard_data = []
+    for user in users:
+        profile = getattr(user, 'profile', None)
+        streak = getattr(user, 'streak', None)
+        completions_count = user.completions.count()
+        achievements_count = user.achievements.count()
+        daily_challenge = getattr(user, 'daily_challenge_instance', None)
+        daily_challenge_completed = daily_challenge.is_completed if daily_challenge else False
+        leaderboard_data.append({
+            'username': user.username,
+            'total_points': profile.total_points if profile else 0,
+            'current_streak': streak.current_streak if streak else 0,
+            'longest_streak': streak.longest_streak if streak else 0,
+            'lessons_completed': completions_count,
+            'achievements_earned': achievements_count,
+            'daily_challenge_completed': daily_challenge_completed,
+        })
+
+    # Sort by total_points descending, then lessons_completed, then achievements_earned
+    leaderboard_data.sort(key=lambda x: (-x['total_points'], -x['lessons_completed'], -x['achievements_earned']))
+
+    context = {
+        'leaderboard': leaderboard_data,
+    }
+    return render(request, 'tracker/leaderboard.html', context) 
