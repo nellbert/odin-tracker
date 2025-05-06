@@ -52,13 +52,16 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'tracker.apps.TrackerConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
-    'tracker',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -91,6 +94,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'odintrack_project.wsgi.application'
+ASGI_APPLICATION = 'odintrack_project.asgi.application'
 
 
 # Database
@@ -177,3 +181,15 @@ STORAGES = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+# Channel Layers Configuration (using Redis)
+# Make sure you have Redis server running
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            # Use environment variable or default to localhost
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/1')],
+        },
+    },
+}

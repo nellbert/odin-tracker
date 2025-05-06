@@ -5,6 +5,11 @@ from django.dispatch import receiver
 from datetime import date, timedelta
 from django.utils import timezone # For date/time operations
 import random # For selecting random challenges
+from django.db import transaction # Import transaction
+
+# Import necessary for broadcasting
+import asyncio
+from asgiref.sync import async_to_sync
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
@@ -19,6 +24,17 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
     instance.profile.save()
+
+# Signal to broadcast stats update whenever a UserProfile is saved
+@receiver(post_save, sender=UserProfile)
+def broadcast_profile_update(sender, instance, **kwargs):
+    # Import the function here, just before use
+    from .consumers import broadcast_stats_update
+    # Define the function to run on commit
+    def do_broadcast():
+        async_to_sync(broadcast_stats_update)()
+    # Schedule the broadcast to run after the current transaction commits
+    transaction.on_commit(do_broadcast)
 
 class Section(models.Model):
     title = models.CharField(max_length=200)

@@ -1,1 +1,1 @@
-web: gunicorn odintrack_project.wsgi --log-file - 
+web: daphne -b 0.0.0.0 -p $PORT odintrack_project.asgi:application 

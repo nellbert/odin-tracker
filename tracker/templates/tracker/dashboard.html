@@ -145,6 +145,17 @@
             </div>
             {% endif %}
 
+            {# User Stats Section #}
+            <div class="glass-card p-3 mb-4">
+                <h4 class="text-center mb-3">Live User Stats</h4>
+                <div id="user-stats-live">
+                    <p>Loading live stats...</p>
+                    <ul id="user-stats-list" class="list-group">
+                        {# User stats will be populated here by WebSocket #}
+                    </ul>
+                </div>
+            </div>
+
         </div> {# End Sidebar Column #}
     </div> {# End Row #}
 </div> {# End Container #}
@@ -157,5 +168,71 @@ document.addEventListener('DOMContentLoaded', function () {
     return new bootstrap.Tooltip(tooltipTriggerEl)
   })
 });
+</script>
+
+{# Add WebSocket JavaScript #}
+<script>
+    const userStatsList = document.getElementById('user-stats-list');
+    const liveStatsDiv = document.getElementById('user-stats-live');
+
+    // Construct WebSocket URL
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsPath = wsScheme + '://' + window.location.host + '/ws/live_stats/';
+
+    console.log("Connecting to WebSocket at:", wsPath);
+    const socket = new WebSocket(wsPath);
+
+    socket.onopen = function(e) {
+        console.log("WebSocket connection established");
+        // Optional: Send a message if needed upon connection
+        // socket.send(JSON.stringify({ 'message': 'Hello Server!' }));
+    };
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log("Message from server:", data);
+
+        if (data.type === 'full_stats_load' || data.type === 'stats_update') {
+            updateStatsList(data.stats);
+        }
+    };
+
+    socket.onclose = function(e) {
+        console.error('WebSocket connection closed unexpectedly:', e);
+        liveStatsDiv.innerHTML = '<p class="text-danger">Live stats connection lost. Please refresh.</p>';
+    };
+
+    socket.onerror = function(err) {
+        console.error('WebSocket error:', err);
+        liveStatsDiv.innerHTML = '<p class="text-warning">Could not connect to live stats.</p>';
+    };
+
+    function updateStatsList(stats) {
+        // Clear previous list items
+        userStatsList.innerHTML = '';
+
+        if (stats && stats.length > 0) {
+            stats.forEach(userStat => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                listItem.textContent = userStat.username;
+
+                const pointsBadge = document.createElement('span');
+                pointsBadge.classList.add('badge', 'bg-primary', 'rounded-pill');
+                pointsBadge.textContent = userStat.points;
+
+                listItem.appendChild(pointsBadge);
+                userStatsList.appendChild(listItem);
+            });
+            // Remove the initial "Loading..." text if it's still there
+            const loadingP = liveStatsDiv.querySelector('p');
+            if(loadingP && loadingP.textContent.includes('Loading')) {
+                loadingP.remove();
+            }
+        } else {
+            userStatsList.innerHTML = '<li class="list-group-item">No user stats available.</li>';
+        }
+    }
+
 </script>
 {% endblock %} 
