@@ -375,4 +375,11 @@ def achievements_page(request):
         'unlocked_achievements_count': unlocked_count,
         'locked_achievements_count': total_achievements_count - unlocked_count,
     }
-    return render(request, 'tracker/achievements_list.html', context) 
+    return render(request, 'tracker/achievements_list.html', context)
+
+# View for the landing page or redirecting to dashboard
+def root_landing_page_view(request):
+    print("DEBUG: root_landing_page_view called. User authenticated:", request.user.is_authenticated)
+    if request.user.is_authenticated:
+        return redirect('dashboard') # Named URL for the dashboard
+    return render(request, 'landing_page.html') 
