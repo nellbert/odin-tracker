@@ -4,7 +4,7 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.db.models import Count, Q, Sum # Import Sum
 from django.contrib import messages
-from .models import Section, Lesson, Completion, UserProfile, UserStreak, UserAchievement, UserDailyChallenge # Add UserAchievement and UserDailyChallenge
+from .models import Section, Lesson, Completion, UserProfile, UserStreak, UserAchievement, UserDailyChallenge, Achievement # Add UserAchievement and UserDailyChallenge
 from django.contrib.auth.models import User # Import User
 from .forms import SignUpForm
 from django.contrib.auth import login # Import login
@@ -260,4 +260,41 @@ def leaderboard(request):
     context = {
         'leaderboard': leaderboard_data,
     }
-    return render(request, 'tracker/leaderboard.html', context) 
+    return render(request, 'tracker/leaderboard.html', context)
+
+@login_required
+def achievements_page(request):
+    user = request.user
+    all_system_achievements = Achievement.objects.all().order_by('title')
+    user_unlocked_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+    
+    user_unlocked_ids = {ua.achievement_id for ua in user_unlocked_achievements}
+    user_unlocked_map = {ua.achievement_id: ua.awarded_at for ua in user_unlocked_achievements}
+
+    all_achievements_data = []
+    unlocked_achievements_data = []
+    locked_achievements_data = []
+
+    for ach in all_system_achievements:
+        is_unlocked = ach.id in user_unlocked_ids
+        awarded_at = user_unlocked_map.get(ach.id) if is_unlocked else None
+        data_obj = {'instance': ach, 'is_unlocked': is_unlocked, 'awarded_at': awarded_at}
+        
+        all_achievements_data.append(data_obj)
+        if is_unlocked:
+            unlocked_achievements_data.append(data_obj)
+        else:
+            locked_achievements_data.append(data_obj)
+            
+    total_achievements_count = all_system_achievements.count()
+    unlocked_count = len(unlocked_achievements_data)
+
+    context = {
+        'all_achievements_data': all_achievements_data,
+        'unlocked_achievements_data': unlocked_achievements_data,
+        'locked_achievements_data': locked_achievements_data,
+        'total_achievements_count': total_achievements_count,
+        'unlocked_achievements_count': unlocked_count,
+        'locked_achievements_count': total_achievements_count - unlocked_count,
+    }
+    return render(request, 'tracker/achievements_list.html', context) 

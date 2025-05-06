@@ -1,0 +1,108 @@
+<div class="col-md-6 col-lg-4 achievement-card-wrapper mb-4">
+    <div class="glass-card achievement-card h-100 {% if not is_unlocked %}locked{% endif %}">
+        <div class="card-body text-center d-flex flex-column">
+            <div class="achievement-icon-container mb-3">
+                <i class="{{ achievement.icon_class|default:'fas fa-star' }} fa-3x achievement-icon"></i>
+                {% if not is_unlocked %}
+                    <div class="locked-overlay">
+                        <i class="fas fa-lock fa-2x"></i>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <h5 class="card-title achievement-title fw-bold mb-2">{{ achievement.title }}</h5>
+            <p class="card-text achievement-description text-muted small flex-grow-1">{{ achievement.description }}</p>
+            
+            <div class="mt-auto pt-3">
+                {% if is_unlocked %}
+                    <span class="badge bg-success unlocked-badge rounded-pill px-3 py-2"><i class="fas fa-check-circle me-1"></i>Unlocked</span>
+                    {% if awarded_date %}
+                        <p class="text-muted small mt-2 mb-0">Awarded: {{ awarded_date|date:"M d, Y" }}</p>
+                    {% endif %}
+                {% else %}
+                    <span class="badge bg-secondary locked-badge rounded-pill px-3 py-2"><i class="fas fa-lock me-1"></i>Locked</span>
+                {% endif %}
+                
+                {% if achievement.points_reward > 0 %}
+                    <p class="text-muted small mt-2 mb-0 points-reward">
+                        <i class="fas fa-star text-warning me-1"></i> {{ achievement.points_reward }} Bonus Points
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Add this to your <style> block in achievements_list.html or a global CSS file #}
+{# Ensure the style block in achievements_list.html is the target if this is a one-off page style #}
+<style>
+.achievement-card-wrapper {
+    /* Ensure consistent height for cards if needed, or let content define height */
+}
+.achievement-card {
+    transition: all 0.3s ease;
+    display: flex; /* Ensure flex properties work directly on card if needed */
+    flex-direction: column;
+}
+.achievement-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: var(--card-hover-shadow);
+}
+.achievement-card.locked {
+    /* background: linear-gradient(135deg, rgba(220, 220, 220, 0.2) 0%, rgba(200, 200, 200, 0.1) 100%); */
+    /* backdrop-filter: blur(5px) saturate(100%); */
+    opacity: 0.7;
+}
+.achievement-card.locked .achievement-icon {
+    color: var(--muted-text-color) !important; /* Make icon grayscale or muted */
+    opacity: 0.5;
+}
+.achievement-icon-container {
+    position: relative;
+    width: 80px; /* Adjust size as needed */
+    height: 80px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 50%;
+    background-color: rgba(var(--bs-primary-rgb), 0.05); /* Subtle background for icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent; /* For unlocked state */
+}
+.achievement-card.locked .achievement-icon-container {
+    background-color: rgba(0,0,0,0.05);
+}
+.achievement-icon {
+    color: var(--bs-primary); /* Default color, can be overridden by achievement.icon_class */
+}
+.locked-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(var(--card-bg), 0.5); /* Semi-transparent overlay based on card bg */
+    border-radius: 50%; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+.achievement-title {
+    color: var(--heading-color);
+    min-height: 44px; /* Reserve space for 2 lines of title */
+}
+.achievement-description {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+.unlocked-badge, .locked-badge {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.points-reward {
+    font-weight: 500;
+}
+</style> 
