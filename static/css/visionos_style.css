@@ -45,58 +45,13 @@
     --badge-bg-info: #5ac8fa;
     --badge-bg-warning: #ffcc00;
     --badge-bg-danger: #dc3545;
-    --badge-text-dark: #1d1d1f;
     --badge-text-light: #fff;
     --noise-opacity: 0.01;
     --background-blob-opacity: 0.20;
     --modal-close-filter: invert(0.1) grayscale(100%);
-}
-
-body.dark-mode {
-    /* Dark Theme Variable Overrides */
-    --body-bg: linear-gradient(135deg, #1a1c20 0%, #111317 100%);
-    --text-color: #e0e0e0;
-    --heading-color: #ffffff;
-    --link-color: #0a84ff;
-    --link-hover-color: #3b9eff;
-    --link-hover-bg: rgba(10, 132, 255, 0.1);
-    --card-bg: linear-gradient(135deg, rgba(40, 40, 45, 0.45) 0%, rgba(30, 30, 35, 0.35) 100%);
-    --card-border-color: rgba(255, 255, 255, 0.1);
-    --card-header-border-color: rgba(255, 255, 255, 0.15);
-    --card-shadow: 0 10px 35px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.05);
-    --card-hover-shadow: 0 15px 45px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
-    --input-bg: rgba(50, 50, 55, 0.6);
-    --input-border-color: rgba(255, 255, 255, 0.1);
-    --input-focus-bg: rgba(60, 60, 65, 0.8);
-    --input-focus-border-color: rgba(10, 132, 255, 0.5);
-    --input-focus-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
-    --btn-primary-bg: linear-gradient(180deg, #0b86ff 0%, #0a84ff 100%);
-    --btn-primary-hover-bg: linear-gradient(180deg, #3b9eff 0%, #0b86ff 100%);
-    --btn-primary-hover-shadow: 0 6px 20px rgba(10, 132, 255, 0.3);
-    --btn-primary-focus-shadow: 0 0 0 4px rgba(10, 132, 255, 0.3);
-    --navbar-bg: rgba(28, 28, 30, 0.8);
-    --navbar-border-color: rgba(255, 255, 255, 0.1);
-    --navbar-link-color: #e0e0e0;
-    --navbar-link-hover-color: #0a84ff;
-    --navbar-link-hover-bg: rgba(10, 132, 255, 0.1);
-    --list-item-border-color: rgba(255, 255, 255, 0.1);
-    --list-item-hover-bg: rgba(255, 255, 255, 0.1);
-    --list-item-hover-border: rgba(10, 132, 255, 0.5);
-    --muted-text-color: #a0a0a0;
-    --completed-text-color: #a0a0a0;
-    --completed-text-decoration-color: rgba(255, 255, 255, 0.3);
-    --progress-bg: rgba(255, 255, 255, 0.1);
-    --progress-bar-bg: linear-gradient(90deg, #0a84ff 0%, #3b9eff 100%);
-    --badge-bg-primary: #0a84ff;
-    --badge-bg-success: #30d158;
-    --badge-bg-info: #64d2ff;
-    --badge-bg-warning: #ffd60a;
-    --badge-bg-danger: #ff453a;
-    --badge-text-dark: #1d1d1f;
-    --badge-text-light: #fff;
-    --noise-opacity: 0.02;
-    --background-blob-opacity: 0.15;
-    --modal-close-filter: invert(0.9) grayscale(100%);
+    --apple-gray-4: #d1d1d6;
+    --apple-gray-5: #e5e5ea;
+    --apple-gray-6: #f2f2f7;
 }
 
 body {
@@ -105,7 +60,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-weight: 400;
     min-height: 100vh;
-    color: var(--text-color);
+    color: var(--primary-text);
     position: relative; /* Needed for absolute positioning of pseudo-elements */
     overflow-x: hidden; /* Prevent horizontal scroll from pseudo-elements */
     transition: background-image 0.3s ease, color 0.3s ease;
@@ -319,14 +274,6 @@ h1, h2, h3, h4, h5, h6 {
     -webkit-backdrop-filter: blur(10px) saturate(180%);
 }
 
-body.dark-mode .navbar .dropdown-menu {
-    background-color: rgba(40, 40, 45, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
 .navbar .dropdown-item {
     padding: 0.6rem 1.35rem;
     color: var(--text-color);
@@ -390,14 +337,9 @@ body.dark-mode .navbar .dropdown-menu {
 /* We will give them a subtle background color that works with the glass effect or stands alone */
 
 .alert-success {
-    background-color: rgba(52, 199, 89, 0.1); /* Light mode subtle green */
+    background-color: rgba(52, 199, 89, 0.1); /* Light green background */
     border-color: rgba(52, 199, 89, 0.2);
     color: #1f7836; /* Darker green text for light bg */
-}
-body.dark-mode .alert-success {
-    background-color: rgba(48, 209, 88, 0.15); /* Dark mode subtle green */
-    border-color: rgba(48, 209, 88, 0.3);
-    color: #30d158; /* Brighter green text for dark bg */
 }
 
 .alert-info {
@@ -405,32 +347,17 @@ body.dark-mode .alert-success {
     border-color: rgba(90, 200, 250, 0.2);
     color: #00639e;
 }
-body.dark-mode .alert-info {
-    background-color: rgba(90, 200, 250, 0.15);
-    border-color: rgba(90, 200, 250, 0.3);
-    color: #5ac8fa;
-}
 
 .alert-warning {
     background-color: rgba(255, 204, 0, 0.1);
     border-color: rgba(255, 204, 0, 0.2);
     color: #997400;
 }
-body.dark-mode .alert-warning {
-    background-color: rgba(255, 204, 0, 0.15);
-    border-color: rgba(255, 204, 0, 0.3);
-    color: #ffcc00;
-}
 
 .alert-danger {
     background-color: rgba(220, 53, 69, 0.1);
     border-color: rgba(220, 53, 69, 0.2);
     color: #842029;
-}
-body.dark-mode .alert-danger {
-    background-color: rgba(255, 69, 58, 0.15);
-    border-color: rgba(255, 69, 58, 0.3);
-    color: #ff4d4f;
 }
 
 /* Ensure .btn-close in alerts is themed */
@@ -491,44 +418,9 @@ a:hover {
     filter: var(--modal-close-filter);
 }
 
-/* Theme Toggle Switch Placeholder Style */
-.theme-switch-wrapper {
-    display: flex;
-    align-items: center;
-}
-.theme-switch {
-    display: inline-block;
-    height: 24px; /* Adjust size */
-    position: relative;
-    width: 44px; /* Adjust size */
-    margin-left: 10px;
-}
-.theme-switch input { display: none; }
-.slider {
-    background-color: #ccc;
-    bottom: 0;
-    cursor: pointer;
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-    transition: .4s;
-    border-radius: 24px; /* Make it round */
-}
-.slider:before {
-    background-color: #fff;
-    bottom: 3px; /* Adjust positioning */
-    content: "";
-    height: 18px; /* Adjust size */
-    left: 3px; /* Adjust positioning */
-    position: absolute;
-    transition: .4s;
-    width: 18px; /* Adjust size */
-    border-radius: 50%;
-}
-input:checked + .slider {
-    background-color: var(--link-color); /* Use theme color */
-}
-input:checked + .slider:before {
-    transform: translateX(20px); /* Adjust distance */
+/* Remove Theme Toggle Switch Placeholder Style */
+
+/* Adjustments for smaller screens if needed */
+/*
+// ... existing code ...
 } 

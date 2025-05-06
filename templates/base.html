@@ -51,15 +51,6 @@
                                 </form>
                             </li>
                             <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <div class="dropdown-item theme-switch-wrapper">
-                                    <label class="form-check-label me-2" for="themeSwitch">Dark Mode</label>
-                                    <label class="theme-switch">
-                                        <input type="checkbox" id="themeSwitch">
-                                        <span class="slider round"></span>
-                                    </label>
-                                </div>
-                            </li>
                         </ul>
                     </li>
 
@@ -102,53 +93,5 @@
 {% block extra_js %}
 {% endblock %}
 
-<script>
-    // Dark Mode Toggle Script
-    const themeSwitch = document.getElementById('themeSwitch');
-    const currentTheme = localStorage.getItem('theme');
-    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-
-    function setTheme(theme) {
-        if (theme === 'dark') {
-            document.body.classList.add('dark-mode');
-            if (themeSwitch) themeSwitch.checked = true;
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.body.classList.remove('dark-mode');
-            if (themeSwitch) themeSwitch.checked = false;
-            localStorage.setItem('theme', 'light');
-        }
-    }
-
-    // Apply stored theme or system preference on load
-    if (currentTheme) {
-        setTheme(currentTheme);
-    } else {
-        if (prefersDarkScheme.matches) {
-            setTheme('dark');
-        } else {
-            setTheme('light');
-        }
-    }
-
-    if (themeSwitch) {
-        themeSwitch.addEventListener('change', function(event) {
-            if (event.target.checked) {
-                setTheme('dark');
-            } else {
-                setTheme('light');
-            }
-        });
-    }
-
-    // Listen for changes in system preference
-    prefersDarkScheme.addEventListener('change', (e) => {
-        // Only change if no explicit user preference is set
-        if (!localStorage.getItem('theme')) {
-            setTheme(e.matches ? 'dark' : 'light');
-        }
-    });
-
-</script>
 </body>
 </html> 
