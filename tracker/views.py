@@ -13,6 +13,7 @@ from .achievements import check_and_award_achievements # Import the new function
 from .daily_challenges_logic import assign_new_daily_challenge, update_daily_challenge_progress # Import new functions
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.http import JsonResponse # Import JsonResponse
 
 @login_required
 def dashboard(request):
@@ -67,56 +68,58 @@ def dashboard(request):
     return render(request, 'tracker/dashboard.html', context)
 
 @login_required
-@require_POST # Ensure this view only accepts POST requests
+@require_POST
 def mark_complete(request, lesson_id):
     user = request.user
     lesson_obj = get_object_or_404(Lesson, id=lesson_id)
-    profile = user.profile # Assumes profile exists via signal
-    # Get or create the streak record for the user
+    profile = user.profile 
     user_streak, streak_created = UserStreak.objects.get_or_create(user=user)
+    points_awarded_for_lesson = 0
+    
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-    points_awarded_for_lesson = 0 # Track points from this lesson completion
-
-    # Use transaction.atomic to ensure database consistency
     try:
         with transaction.atomic():
-            # Check if already completed
-            completion, created = Completion.objects.get_or_create(
-                user=user,
-                lesson=lesson_obj
-            )
+            completion, created = Completion.objects.get_or_create(user=user, lesson=lesson_obj)
 
             if created:
-                # If newly created, update points
                 profile.total_points += lesson_obj.points_value
-                points_awarded_for_lesson = lesson_obj.points_value # Store points from this lesson
+                points_awarded_for_lesson = lesson_obj.points_value
                 profile.save()
-                
-                # Update streak
                 user_streak.update_streak()
-
-                # Check for achievements after a lesson is completed
-                check_and_award_achievements(user, request, completed_lesson=lesson_obj)
-
-                messages.success(request, f"'{lesson_obj.title}' marked as complete! +{lesson_obj.points_value} points. Streak: {user_streak.current_streak} day(s)!")
                 
-                # Update daily challenge progress
-                lesson_info_for_challenge = {
-                    'lesson_type': lesson_obj.lesson_type,
-                    'points_earned': lesson_obj.points_value # This specific lesson's points
-                }
-                update_daily_challenge_progress(user, request, completed_lesson_info=lesson_info_for_challenge, points_earned_in_action=points_awarded_for_lesson)
-            else:
-                # If already existed
-                messages.info(request, f"'{lesson_obj.title}' was already marked as complete.")
-                # Even if already complete, we could update daily challenge if it's point-based and points were gained elsewhere.
-                # For now, tied to lesson completion action.
-                # update_daily_challenge_progress(user, request, points_earned_in_action=0) # If points are earned by other means and should count
+                # We still run achievement checks, but don't need request for messages if AJAX
+                check_and_award_achievements(user, None if is_ajax else request, 
+                                           completion_instance=completion, 
+                                           profile=profile, 
+                                           streak=user_streak)
+                
+                lesson_info_for_challenge = {'lesson_type': lesson_obj.lesson_type, 'points_earned': lesson_obj.points_value}
+                challenge_was_completed = update_daily_challenge_progress(user, None if is_ajax else request, 
+                                                                          completed_lesson_info=lesson_info_for_challenge, 
+                                                                          points_earned_in_action=points_awarded_for_lesson)
+                if challenge_was_completed:
+                    check_and_award_achievements(user, None if is_ajax else request, daily_challenge_completed=True)
 
+                if not is_ajax:
+                    messages.success(request, f"'{lesson_obj.title}' marked as complete! +{lesson_obj.points_value} points. Streak: {user_streak.current_streak} day(s)!")
+                
+            else: # Already completed
+                if not is_ajax:
+                    messages.info(request, f"'{lesson_obj.title}' was already marked as complete.")
+        
+        # If we reach here without error
+        if is_ajax:
+            return JsonResponse({'status': 'ok', 'message': 'Lesson marked complete.'})
+            
     except Exception as e:
-        # Handle potential errors during the transaction
-        messages.error(request, f'An error occurred: {e}')
+        print(f"Error in mark_complete for user {user.id}, lesson {lesson_id}: {e}") # Log error
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': f'An error occurred: {e}'}, status=500)
+        else:
+            messages.error(request, f'An error occurred: {e}')
 
+    # Fallback redirect for non-AJAX or if AJAX failed before returning JSON
     return redirect('dashboard')
 
 @login_required
@@ -125,38 +128,36 @@ def unmark_complete(request, lesson_id):
     user = request.user
     lesson = get_object_or_404(Lesson, id=lesson_id)
     profile = user.profile
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     try:
         with transaction.atomic():
-            # Find the specific completion record
             completion = Completion.objects.filter(user=user, lesson=lesson).first()
-
             if completion:
-                # Subtract points BEFORE deleting completion
-                # Ensure points don't go below zero
                 points_to_subtract = lesson.points_value
                 profile.total_points = max(0, profile.total_points - points_to_subtract)
-                profile.save()
-
-                # Delete the completion record
+                profile.save() # Save profile change
                 completion.delete()
 
-                messages.success(request, 
-                    f"'{lesson.title}' marked as incomplete. (-{points_to_subtract} points)")
-                
-                # Note: We are NOT automatically recalculating streaks here.
-                # The user's last_activity_date remains, and the next completion
-                # will correctly determine the streak continuation from that date.
-                # We also don't need to re-check achievements here, as undoing 
-                # completion shouldn't typically grant new achievements.
-
+                if not is_ajax:
+                    messages.success(request, 
+                        f"'{lesson.title}' marked as incomplete. (-{points_to_subtract} points)")
             else:
-                # If no completion record exists, inform the user
-                messages.info(request, f"'{lesson.title}' was already not marked as complete.")
+                if not is_ajax:
+                    messages.info(request, f"'{lesson.title}' was already not marked as complete.")
+        
+        # If successful
+        if is_ajax:
+            return JsonResponse({'status': 'ok', 'message': 'Lesson marked incomplete.'})
 
     except Exception as e:
-        messages.error(request, f'An error occurred while undoing completion: {e}')
+        print(f"Error in unmark_complete for user {user.id}, lesson {lesson_id}: {e}") # Log error
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': f'An error occurred: {e}'}, status=500)
+        else:
+            messages.error(request, f'An error occurred while undoing completion: {e}')
 
+    # Fallback redirect for non-AJAX or if AJAX failed before returning JSON
     return redirect('dashboard')
 
 def signup(request):
