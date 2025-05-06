@@ -42,8 +42,8 @@
                                             {% if lesson.id in completed_lessons %}
                                                 <form method="post" action="{% url 'unmark_complete' lesson.id %}" style="display: inline;">
                                                     {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-outline-success completed-btn" title="Mark as Incomplete">
-                                                        <i class="fas fa-check-circle me-1"></i> Completed
+                                                    <button type="submit" class="btn btn-xs btn-mark-complete-light completed-btn" title="Mark as Incomplete">
+                                                        <i class="fas fa-check-circle me-1 text-success"></i> Completed
                                                     </button>
                                                 </form>
                                             {% else %}
@@ -290,7 +290,20 @@ document.addEventListener('DOMContentLoaded', function () {
         /* Ensure buttons are styled according to visionOS theme */
     }
     .completed-btn {
-        /* Specific style for completed button if different from primary */
+        border: 1.5px solid #4ade80 !important; /* outline-success green border */
+        color: #198754 !important; /* Bootstrap success green */
+        background-color: #e3f0fb !important;
+        font-size: 0.95em;
+        padding: 0.35rem 0.9rem;
+        box-shadow: none;
+        transition: background 0.2s, color 0.2s, border 0.2s;
+    }
+    .completed-btn:hover, .completed-btn:focus {
+        background-color: #d0e7fa !important;
+        color: #157347 !important;
+        border-color: #198754 !important;
+        opacity: 0.95;
+        cursor: pointer;
     }
     .stat-title {
         font-size: 1.1rem;
