@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login - OdinTrack{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card glass-card form-card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Login</h3>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger rounded-3">
+                        Your username and password didn't match. Please try again.
+                    </div>
+                {% endif %}
+
+                {% if next %}
+                    {% if user.is_authenticated %}
+                        <p class="alert alert-warning rounded-3">Your account doesn't have access to this page. To proceed,
+                        please login with an account that has access.</p>
+                    {% else %}
+                        <p class="alert alert-info rounded-3">Please login to see this page.</p>
+                    {% endif %}
+                {% endif %}
+
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Username</label>
+                        <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" class="form-control" required id="id_username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">Password</label>
+                        <input type="password" name="password" autocomplete="current-password" class="form-control" required id="id_password">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                    </div>
+                    <input type="hidden" name="next" value="{{ next }}">
+                </form>
+                {# Assumes you setup the password_reset view in your URLconf #}
+                {# <p><a href="{% url 'password_reset' %}">Lost password?</a></p> #}
+                <p class="mt-4 text-center">Don't have an account? <a href="{% url 'signup' %}" class="text-decoration-none">Sign up here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load template_filters %}
+
+{% block title %}Dashboard - OdinTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-lg-4"> {# Use container-fluid for more width #}
+    <div class="row g-4"> {# Add gutter spacing g-4 #}
+
+        {# === Main Content Column === #}
+        <div class="col-lg-7 order-2 order-lg-1"> {# Order ensures this comes first visually on large screens #}
+            <h3 class="mb-3 text-center text-lg-start">Course Content</h3>
+            {% for section in sections %}
+                <div class="card glass-card mb-4">
+                    <div class="card-header bg-transparent border-bottom border-light">
+                        <h5 class="mb-0">{{ section.title }}</h5>
+                    </div>
+                    <div class="card-body p-0"> 
+                        <ul class="list-group list-group-flush">
+                            {% for lesson in section.lessons.all %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center {% if lesson.id in completed_lessons %}completed-lesson{% endif %}">
+                                    <span class="flex-grow-1 me-3">
+                                        {% if lesson.lesson_type == 'Project' %}
+                                            <span class="badge bg-warning text-dark me-2 rounded-pill">Project</span>
+                                        {% else %}
+                                            <span class="badge bg-info text-dark me-2 rounded-pill">Lesson</span>
+                                        {% endif %}
+
+                                        {% if lesson.url %}
+                                            <a href="{{ lesson.url }}" target="_blank" class="text-decoration-none {% if lesson.id in completed_lessons %}text-muted{% else %}text-dark{% endif %}">{{ lesson.title }}</a>
+                                        {% else %}
+                                            {{ lesson.title }}
+                                        {% endif %}
+                                        <small class="text-muted d-block d-sm-inline mt-1 mt-sm-0"> ({{ lesson.points_value }} pts)</small>
+                                    </span>
+
+                                    <div class="text-end">
+                                        {% if lesson.id in completed_lessons %}
+                                            <form method="post" action="{% url 'unmark_complete' lesson.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Mark as Incomplete">
+                                                    <i class="fas fa-check-circle me-1"></i> Completed
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post" action="{% url 'mark_complete' lesson.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-primary">Mark Complete</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item">No lessons in this section yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="glass-card p-4 text-center">
+                    <p>No course sections found. Add some in the <a href="{% url 'admin:index' %}">admin interface</a>!</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# === Sidebar Column === #}
+        <div class="col-lg-5 order-1 order-lg-2"> {# This column will stack below on smaller screens #}
+            
+            {# Stats Card #}
+            <div class="glass-card p-4 mb-4 text-center">
+                <h4 class="mb-3">Progress & Stats</h4>
+                <div class="row mb-3 align-items-center">
+                    <div class="col-6 border-end"> {# Use border for visual separation #}
+                        <h5>Overall Progress</h5>
+                        <p class="mb-1">({{ user_completed_count }}/{{ total_lessons_count }} lessons)</p>
+                        <div class="progress mb-2" role="progressbar" aria-label="Course Progress" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar" style="width: {{ progress_percentage }}%">{{ progress_percentage }}%</div>
+                        </div>
+                        <p><strong>Points:</strong> <span class="badge bg-primary rounded-pill fs-6">{{ total_points }}</span></p>
+                    </div>
+                    <div class="col-6">
+                        <h5><i class="fas fa-fire me-1" style="color: #ff9500;"></i>Streaks</h5>
+                        <p class="mb-1">
+                            <strong>Current:</strong> <span class="badge bg-success rounded-pill fs-6">{{ current_streak }} Day{{ current_streak|pluralize }}</span>
+                        </p>
+                        <p class="mb-0">
+                            <strong>Longest:</strong> <span class="badge bg-info rounded-pill fs-6">{{ longest_streak }} Day{{ longest_streak|pluralize }}</span>
+                        </p>
+                         {% if last_activity_date %}
+                        <small class="text-muted d-block mt-1">Last active: {{ last_activity_date|date:"M d" }}</small>
+                        {% else %}
+                        <small class="text-muted d-block mt-1">No activity yet</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# Daily Challenge Card #}
+            {% if user_daily_challenge and user_daily_challenge.challenge %}
+                <div class="glass-card p-3 mb-4">
+                    <h4 class="text-center mb-3">
+                        <i class="fas fa-bullseye me-2" style="color: #ff3b30;"></i>Daily Challenge
+                        {% if user_daily_challenge.is_completed %}
+                            <span class="badge bg-success rounded-pill ms-2">Completed!</span>
+                        {% endif %}
+                    </h4>
+                    <div class="text-center">
+                        <h5>{{ user_daily_challenge.challenge.get_description }}</h5>
+                        {% if not user_daily_challenge.is_completed %}
+                            <p class="mb-1">
+                                Progress: {{ user_daily_challenge.current_progress }} / {{ user_daily_challenge.challenge.target_value }}
+                            </p>
+                            <div class="progress mx-auto mb-2" style="max-width: 300px;" role="progressbar" aria-valuenow="{{ user_daily_challenge.current_progress }}" aria-valuemin="0" aria-valuemax="{{ user_daily_challenge.challenge.target_value }}">
+                                <div class="progress-bar bg-danger" style="width: {% widthratio user_daily_challenge.current_progress user_daily_challenge.challenge.target_value 100 %}%"></div>
+                            </div>
+                            <small class="text-muted">Bonus: {{ user_daily_challenge.challenge.points_reward }} points</small>
+                        {% else %}
+                             <p class="text-success"><i class="fas fa-check-circle me-1"></i>+{{ user_daily_challenge.challenge.points_reward }} bonus points earned!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% elif user_daily_challenge %}
+                <div class="glass-card p-3 mb-4 text-center">
+                    <h4 class="mb-2"><i class="fas fa-bullseye me-2" style="color: #ff3b30;"></i>Daily Challenge</h4>
+                    <p class="text-muted">Check back tomorrow for a new challenge!</p>
+                </div>
+            {% endif %}
+
+            {# Recently Unlocked Achievements Section #}
+            {% if user_achievements %}
+            <div class="glass-card p-3 mb-4">
+                <h4 class="text-center mb-3"><i class="fas fa-medal me-2" style="color: #ffd700;"></i>Recent Achievements</h4>
+                <div class="row g-2 justify-content-center">
+                    {% for user_ach in user_achievements %}
+                        <div class="col-auto" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ user_ach.achievement.description }} ({{ user_ach.achievement.points_reward }} pts) - Awarded: {{ user_ach.awarded_at|date:'M d, Y' }}">
+                            <div class="text-center p-2 border rounded-3" style="background-color: rgba(255,255,255,0.1); min-width: 80px;">
+                                <i class="{{ user_ach.achievement.icon_class|default:'fas fa-star' }} fa-2x mb-1" style="color: #ffc107;"></i>
+                                <small class="d-block text-muted" style="font-size: 0.75rem;">{{ user_ach.achievement.title }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                 {# <div class="text-center mt-2"><a href="#" class="text-decoration-none">View all achievements...</a></div> #}
+            </div>
+            {% endif %}
+
+        </div> {# End Sidebar Column #}
+    </div> {# End Row #}
+</div> {# End Container #}
+
+{# Tooltip script remains the same #}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  })
+});
+</script>
+{% endblock %} 
