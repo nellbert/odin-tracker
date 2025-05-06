@@ -59,11 +59,11 @@ def _award_achievement_if_not_earned(user, request, achievement_slug):
 
 def check_and_award_achievements(user, request=None, 
                                  # Context specific triggers:
-                                 completion_instance=None, # Changed from completed_lesson
-                                 profile=None, 
-                                 streak=None, 
-                                 daily_challenge_completed=False, 
-                                 view_context=None 
+                                 completed_lesson=None, 
+                                 profile=None, # Pass updated profile for point checks
+                                 streak=None, # Pass updated streak for streak checks
+                                 daily_challenge_completed=False, # Signal if a daily challenge was just done
+                                 view_context=None # e.g., 'leaderboard', 'achievements', 'reset'
                                  ):
     """Checks all relevant conditions and awards achievements based on context."""
     if not user or not user.is_authenticated:
@@ -79,9 +79,7 @@ def check_and_award_achievements(user, request=None,
         return
 
     # --- Checks Triggered by Lesson Completion --- 
-    if completion_instance:
-        # Get the related lesson from the completion instance
-        completed_lesson = completion_instance.lesson
+    if completed_lesson:
         user_completion_count = Completion.objects.filter(user=user).count()
         
         # 1. First Completion
@@ -111,11 +109,11 @@ def check_and_award_achievements(user, request=None,
             _award_achievement_if_not_earned(user, request, 'completed_all')
 
         # 4. Weekend Warrior
-        if completion_instance.completed_at.weekday() >= 5: # 5 = Saturday, 6 = Sunday
+        today = timezone.now().date() # Use timezone-aware if possible
+        if completed_lesson.completed_at.weekday() >= 5: # 5 = Saturday, 6 = Sunday
             _award_achievement_if_not_earned(user, request, 'weekend_completion')
 
         # 5. Learning Spree (3 in a day)
-        today = completion_instance.completed_at.date()
         completions_today = Completion.objects.filter(user=user, completed_at__date=today).count()
         if completions_today >= 3:
              _award_achievement_if_not_earned(user, request, 'learning_spree_3')
@@ -163,7 +161,7 @@ def check_and_award_achievements(user, request=None,
         _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['FIRST_LESSON'])
 
     # 2. First Project Completed
-    if completion_instance and completion_instance.lesson_type == 'Project':
+    if completed_lesson and completed_lesson.lesson_type == 'Project':
         if Completion.objects.filter(user=user, lesson__lesson_type='Project').count() == 1:
             _award_achievement_if_not_earned(user, request, ACHIEVEMENT_SLUGS['FIRST_PROJECT'])
 
@@ -202,7 +200,7 @@ def check_and_award_achievements(user, request=None,
         pass
 
     # 4. Perfect Section (any section fully completed)
-    if completion_instance: # Check only if a lesson was just completed
+    if completed_lesson: # Check only if a lesson was just completed
         section_just_completed = completed_lesson.section
         lessons_in_section_total = section_just_completed.lessons.count()
         lessons_in_section_completed_by_user = section_just_completed.lessons.filter(id__in=completed_lesson_ids).count()

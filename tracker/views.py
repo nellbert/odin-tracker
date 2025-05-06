@@ -69,47 +69,63 @@ def dashboard(request):
     return render(request, 'tracker/dashboard.html', context)
 
 @login_required
-@require_POST
+@require_POST # Ensure this view only accepts POST requests
 def mark_complete(request, lesson_id):
     user = request.user
     lesson_obj = get_object_or_404(Lesson, id=lesson_id)
     profile = user.profile # Assumes profile exists via signal
+    # Get or create the streak record for the user
     user_streak, streak_created = UserStreak.objects.get_or_create(user=user)
-    points_awarded_for_lesson = 0
-    awarded_new_achievement = False 
 
+    points_awarded_for_lesson = 0
+    awarded_new_achievement = False # Flag to track if any achievement was awarded in this action
+
+    # Use transaction.atomic to ensure database consistency
     try:
         with transaction.atomic():
-            # Get or create the completion object
-            completion, created = Completion.objects.get_or_create(user=user, lesson=lesson_obj)
+            # Check if already completed
+            completion, created = Completion.objects.get_or_create(
+                user=user,
+                lesson=lesson_obj
+            )
 
             if created:
+                # If newly created, update points
                 profile.total_points += lesson_obj.points_value
-                points_awarded_for_lesson = lesson_obj.points_value
-                profile.save() # Save profile BEFORE checking point achievements
+                points_awarded_for_lesson = lesson_obj.points_value # Store points from this lesson
+                profile.save()
                 
-                user_streak.update_streak() # Saves streak internally
+                # Update streak
+                user_streak.update_streak()
 
-                # Check achievements AFTER points and streak are updated
-                # Pass the completion instance, updated profile, and updated streak
+                # Check for achievements after a lesson is completed
                 check_and_award_achievements(user, request, 
-                                           completion_instance=completion, # Pass completion obj
+                                           completed_lesson=lesson_obj, 
                                            profile=profile, 
                                            streak=user_streak)
 
                 messages.success(request, f"'{lesson_obj.title}' marked as complete! +{lesson_obj.points_value} points. Streak: {user_streak.current_streak} day(s)!")
                 
-                lesson_info_for_challenge = {'lesson_type': lesson_obj.lesson_type, 'points_earned': lesson_obj.points_value}
+                # Update daily challenge progress
+                lesson_info_for_challenge = {
+                    'lesson_type': lesson_obj.lesson_type,
+                    'points_earned': lesson_obj.points_value # This specific lesson's points
+                }
                 challenge_was_completed = update_daily_challenge_progress(user, request, 
                                                                           completed_lesson_info=lesson_info_for_challenge, 
                                                                           points_earned_in_action=points_awarded_for_lesson)
+                # Check daily challenge achievements if the challenge was just completed
                 if challenge_was_completed:
-                    # Check daily challenge achievements (doesn't need completion_instance)
                     check_and_award_achievements(user, request, daily_challenge_completed=True)
-                    
             else:
+                # If already existed
                 messages.info(request, f"'{lesson_obj.title}' was already marked as complete.")
+                # Even if already complete, we could update daily challenge if it's point-based and points were gained elsewhere.
+                # For now, tied to lesson completion action.
+                # update_daily_challenge_progress(user, request, points_earned_in_action=0) # If points are earned by other means and should count
+
     except Exception as e:
+        # Handle potential errors during the transaction
         messages.error(request, f'An error occurred: {e}')
 
     return redirect('dashboard')
