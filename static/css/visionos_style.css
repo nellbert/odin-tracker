@@ -186,13 +186,14 @@ h1, h2, h3, h4, h5, h6 {
     transition: color 0.3s ease;
 }
 
-.btn {
-    border-radius: 18px; /* Match input rounding */
-    padding: 0.85rem 1.75rem;
-    font-weight: 500;
-    transition: all 0.25s ease-in-out;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
-    border: none;
+.btn, .btn:hover, .btn:focus, .btn:active {
+    border-radius: 18px !important; /* Unified button rounding everywhere */
+    transition: all 0.35s cubic-bezier(.4,0,.2,1); /* Smoother, slower transition */
+}
+
+/* Prevent a:hover from affecting .btn border-radius */
+a.btn:hover, a.btn:focus, a.btn:active {
+    border-radius: 18px !important;
 }
 
 .btn-primary {
@@ -203,9 +204,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-primary:hover {
     background: var(--btn-primary-hover-bg);
-    transform: scale(1.04); /* More noticeable scale */
-    /* Glow effect */
-    box-shadow: var(--btn-primary-hover-shadow);
+    transform: scale(1.015); /* Subtle scale, less exaggerated */
+    /* Softer glow effect */
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.13);
 }
 
 .btn:focus,
@@ -464,4 +465,18 @@ a:hover {
     background: linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0));
     z-index: 2;
     pointer-events: none;
+}
+
+.btn-outline-secondary {
+    color: #1d1d1f;
+    background: transparent;
+    border: 1.5px solid #bfc7d1;
+    font-weight: 500;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+}
+.btn-outline-secondary:hover, .btn-outline-secondary:focus {
+    background: rgba(0, 113, 227, 0.07);
+    color: #0071e3;
+    border-color: #0071e3;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.10);
 } 
